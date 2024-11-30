@@ -1,0 +1,61 @@
+\section{Contesto}
+Oggigiorno l'informatica e le reti di telecomunicazione sono diventate delle parti integranti e pervasive nelle nostre vite. Senza che ce ne accorgiamo, dispositivi di ogni genere e reti di ogni dimensione sono arrivati a diventare parte integrante del quotidiano.
+
+Per questo motivo, garantire la loro sicurezza diventa ogni giorno sempre più importante. Infatti, ogni singolo nodo di rete, anche quello più insignificante, nelle mani del giusto attaccante può diventare inestimabile sia in sé che come eventuale testa di ponte per un attacco più esteso e massiccio.
+
+Tutti questi rischi valgono per chiunque disponga di servizi esposti in rete, indipendentemente dalla loro popolarità. Infatti, la rete è oramai periodicamente scandita metodicamente da attaccanti che cercano con strumenti automatici qualunque tipo di servizio dotato di vulnerabilità note, così da assicurarsi un facile bottino. Inutile dire che la necessità di un controllo di sicurezza possa diventare solamente ancora più critica per grandi aziende ed entità maggiormente esposte in rete.
+
+Per tutti questi motivi è buona norma verificare regolarmente la sicurezza della propria rete e dei propri servizi esposti in Internet.
+
+\section{Verifica della sicurezza di un nodo di rete}
+La sicurezza dei propri nodi di rete può essere verificata tramite delle procedure genericamente dette di \textbf{vulnerability assessment} (lett. \emph{verifica delle vulnerabilità}). L'obiettivo di queste procedure è:
+\begin{itemize}
+    \item Controllare se i servizi visibili dalla rete contengono delle vulnerabilità software.
+    \item Verificare se queste vulnerabilità corrispondono a rischi di sicurezza noti.
+    \item Classificarle e valutarne il grado di rischio, così da indurre una gerarchia di priorità.
+\end{itemize}
+
+\subsection{Strumenti disponibili}
+Esistono molte modalità con cui queste procedure possono essere eseguite, più o meno manuali. Tuttavia, in ambito di produzione e non solo è regolare l'uso di \textbf{vulnerability scanner}, applicativi dedicati allo scopo e che a fronte di una lista di \emph{host} di rete ne verifica la sicurezza, comparando le vulnerabilità riscontrate con dei \emph{database} costantemente aggiornati di vulnerabilità note.
+
+Esistono molti scanner di questo tipo, a pagamento e non, con vari tipi di licenze, specifiche e requisiti, ma in generale tutti svolgono lo stesso compito: verificare le vulnerabilità reperite in fase di scansione confrontandole con database noti. I principali fattori di differenza sono il costo e le funzionalità ulteriori fornite in assistenza all'utente: reportistica avanzata, suggerimento di soluzioni, correzioni automatiche delle vulnerabilità fornite, verifiche aggiuntive o euristiche, o altro ancora.
+
+\section{Casi d'uso}
+Come già detto, la sicurezza della propria presenza in rete dovrebbe essere curata da chiunque, indipendentemente dalle proprie esigenze.
+
+Tuttavia, l'installazione e la configurazione degli scanner sopracitati spesso è fuori dalle possibilità per la maggior parte dei soggetti interessati, e per svariati motivi:
+\begin{itemize}
+    \item Mancanza delle risorse economiche necessarie per la licenza dell'applicativo o per l'hardware da dedicargli.
+    \item Mancanza delle competenze necessarie per installarlo e configurarlo.
+    \item Mancanza delle competenze necessarie per interpretare i risultati (ad esempio, per dire quali delle vulnerabilità presentate dal software possono essere ignorate in sicurezza e quali invece richiedano attenzione immediata).
+\end{itemize}
+
+Inoltre, verificare la sicurezza degli apparati di rete potrebbe essere essa stessa un'attività a rischio maggiore di zero; infatti, servizi di rete particolarmente obsoleti potrebbero reagire male all'invasività di una scansione di questo tipo, terminando anticipatamente o subendo altri tipi di malfunzionamenti. Pertanto, è in generale buona norma lasciare l'esecuzione di questi strumenti a personale specializzato.
+
+Per tutte queste ragioni, solitamente privati e aziende si affidano a società specializzate in questo senso. Inoltre, alcuni provider di rete spesso effettuano regolari controlli della sicurezza dei nodi che usufruiscono dei loro servizi.
+
+Il servizio richiesto in questo caso è spesso chiamato \textbf{VAPT}, ovvero \textbf{Vulnerability Assessment e Penetration Testing}.
+Tale dicitura indica che il servizio comprende sia il ``semplice'' \emph{vulnerability assessment} fatto tramite scanner di sicurezza, che un più pervasivo e personalizzato \emph{penetration testing}.
+
+In questo contesto, per \emph{penetration testing} si intende l'attività di simulazione di attacchi informatici condotta da esperti per identificare vulnerabilità sfruttabili in un sistema, rete o applicazione. A differenza del solo \emph{vulnerability assessment}, che si limita a individuare e classificare le falle di sicurezza tramite strumenti automatici, il \emph{penetration testing} prevede un'analisi più approfondita e manuale, in cui il tester assume il ruolo di un potenziale attaccante\footnote{Ciò detto, a volte alcune aziende per VAPT intendono erroneamente la sola attività di \emph{vulnerability assessment}.}.
+
+Durante il penetration testing, l'esperto esegue una serie di tentativi mirati a violare le difese del sistema, sfruttando falle note, errori di configurazione o debolezze specifiche nel software. Questo processo consente non solo di verificare la presenza di vulnerabilità, ma anche di valutare l'efficacia delle misure di sicurezza implementate e di testare la capacità di risposta dell'organizzazione agli attacchi più impegnati.
+
+I risultati ottenuti vengono poi documentati in un report dettagliato, che include:
+\begin{itemize}
+    \item Descrizione delle vulnerabilità identificate e il loro livello di gravità.
+    \item Dimostrazione degli exploit utilizzati per evidenziare le debolezze.
+    \item Raccomandazioni specifiche per mitigare / eliminare i rischi e migliorare la sicurezza complessiva.
+\end{itemize}
+
+\section{Il problema}
+A causa dei costi e delle complessità dei sistemi posti oggi in essere, l'uso di questi applicativi è spesso un'attività onerosa per molti soggetti, anche quelli che non dispongono di particolari esigenze di sicurezza. Infatti, spesso e volentieri alcuni soggetti non richiedono avanzati controlli di sicurezza con cadenza settimanale, ma semplici controlli mensili o addirittura \emph{una tantum}.
+
+A tal fine, si vuole effettuare un'integrazione con uno scanner di sicurezza esistente, effettivamente fornendo un'altra interfaccia / punto di accesso, possibilmente il più possibile semplificati senza perderne l'efficacia.
+
+In questa tesi si vuole pertanto discutere approfonditamente l'analisi, la progettazione e lo sviluppo di una soluzione software così specificata.
+Nel seguito si dettaglieranno tutte queste fasi, più l'installazione del sistema così realizzato e un'abbondante trattazione sui futuri sviluppi.
+
+L'obiettivo sarà sviluppare non solo un semplice prototipo, ma un prodotto funzionale e già commercialmente utilizzabile nella sua semplicità.
+
+Inoltre, particolare enfasi sarà posta sul procedimento di analisi e progettazione, così da realizzare un prodotto con basi solide e facilmente mantenibile ed estendibile nel futuro con ulteriori funzionalità.
