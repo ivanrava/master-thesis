@@ -1,0 +1,114 @@
+In cui si descrive il processo di analisi della soluzione software che si intende sviluppare, enumerando i principali requisiti richiesti.
+
+\section{Requisiti funzionali}
+Ovvero ciò che il sistema dovrà necessariamente fare.
+
+\subsection{Multi-tenancy}
+Siccome l'obiettivo finale è commercializzare il prodotto così sviluppato, è imperativo che il sistema supporti una gestione degli utenti di tipo \emph{multi-tenant}.
+
+La gestione degli utenti multi-tenant è un modello architetturale utilizzato in sistemi software e in particolar modo nelle applicazioni SaaS con più clienti. In questi sistemi esistono più utenti (detti \emph{tenant}, appunto) che condividono la stessa infrastruttura software e hardware, ma mantengono i loro dati e configurazioni separati e isolati, pur non fisicamente almeno logicamente e funzionalmente.
+
+In particolare, in questa applicazione la logica \emph{multi-tenant} sarebbe applicata alla gestione delle utenze del sistema. In fase di analisi sono emerse due possibili gerarchie adottabili.
+
+\subsubsection{A tre livelli}
+\label{3-level}
+In questo scenario i livelli di utenze sono strutturati in questo modo:
+\begin{enumerate}
+    \item Sulla sommità vi è \textbf{un'unica utenza amministrativa} con poteri pressoché illimitati sul sistema, gestita in modo esclusivo dall'azienda che gestisce il sistema in oggetto.
+    \item Al di sotto di essa, stanno un numero potenzialmente illimitato di \textbf{tenant}, che possono essere creati solo dall'utenza amministrativa di livello superiore.
+    
+    I tenant rappresentano i rivenditori (\emph{reseller}) del servizio. Siccome questo prodotto è concepito per essere manutenuto da un provider di rete, è logico considerare la possibilità che questo sistema possa essere offerto ad utenti che dispongano di ulteriori clienti a cui rivendere il sistema.
+    
+    In alternativa, queste utenze possono anche essere pensate come quelle di organismi o aziende multi-individuo, al di sotto delle quali stanno molteplici utenti di cui si vuole raccogliere i risultati, piuttosto che clienti di un rivenditore.
+    \item Infine, all'ultimo grado della gerarchia stanno gli utenti semplici. Queste utenze possono essere create sia dai \emph{tenant} che dall'amministratore principale, anche se questo in teoria non dovrebbe aver mai realisticamente bisogno di farlo.
+\end{enumerate}
+Ogni utenza può vedere, controllare e gestire tutto ciò che viene fatto ai livelli inferiori, ma non da utenze sue pari o superiori in gerarchia.
+
+Nell'ambito del nostro sistema, tutti gli utenti di questa gerarchia sono in grado di creare e configurare task di scansione, bersagli, consultare i risultati, ecc.
+
+Tuttavia, queste funzionalità sono limitate e controllate per tutti al di fuori dell'amministratore unico. Infatti, ogni utente dei livelli inferiori è soggetto a un limite sulle risorse utilizzate che è stato imposto al momento della sua creazione dall'utenza direttamente responsabile per essa (maggiori dettagli in \ref{quote-spec}).
+
+\subsubsection{A quattro livelli}
+\label{4-level}
+Un'altra possibilità poteva essere una gerarchia a quattro livelli, strutturata come segue:
+\begin{enumerate}
+    \item Alla sommità vi sta sempre un'utenza amministrativa unica e onnipotente, con facoltà di creare gli utenti sottostanti e gestirli.
+    \item Al di sotto sono posti solo i rivenditori / \emph{reseller}. Questi possono creare utenti rappresentanti dei clienti finali.
+    \item Questi utenti rappresentano i singoli clienti privati o, nel caso di un'azienda, l'amministratore di sistema incaricato per la sicurezza informatica di quell'azienda (o il CED\footnote{\textbf{Centro Elaborazione Dati}: una struttura fisica / virtuale dedicata alla gestione delle informazioni aziendali a carattere informatico.} o SOC\footnote{\textbf{Security Operations Center}: centro operativo dedicato alla sicurezza informatica, spesso focalizzato sull'\emph{incident response} e il monitoraggio preventivo delle minacce con software SIEM / IDS / IPS e/o altri strumenti.}, se presente e operativo nel contesto aziendale specifico).
+    \item Infine, gli utenti creati per ogni singola azienda. Questi utenti avrebbero solo la possibilità di controllare / monitorare i dati raccolti, ma senza intervenire sul processo di scansione, lasciato in responsabilità agli utenti con maggiori competenze.
+\end{enumerate}
+Si noti come questa architettura sia del tutto simile alla precedente, ma con l'unica aggiunta di un ulteriore livello che è in grado di vedere i risultati del livello immediatamente superiore, ma senza poter configurare scansioni o simili meccaniche.
+
+\subsection{Limiti d'uso (quote di scansione)}
+\label{quote-spec}
+Siccome questo progetto è pensato per diventare un SaaS (come approfondito in \ref{saas}), una parte fondamentale del processo di analisi è stata escogitare un sistema di controllo delle risorse, eventualmente controllata ad un pagamento dell'utente del servizio.
+
+Inizialmente si è pensato ad un sistema minimale di quote mensili di scansione. Una quota nel contesto di questo progetto è definito come un numero intero $> 0$ che denota il numero di nodi scansionabili in un mese dall'utente subordinato a tale limite. In pratica, la quota si traduce nel numero di IP che un utente può visitare mensilmente con lo scanner fornito dal servizio.
+
+Più nello specifico si applicano le seguenti condizioni d'uso:
+\begin{itemize}
+    \item Il numero di scansioni si rinnova all'inizio di ogni mese. Non ci sono differenze per tenere conto del diverso numero dei giorni di ogni mese.
+    \item Una scansione che interessa $n$ IP effettivamente consuma $n$ unità di quota per quel mese.
+    \item Nodi spenti contano comunque e causano un decremento della quota né più né meno.
+    \item Scansionare più volte lo stesso IP nello stesso mese, causa più volte il medesimo decremento che intacca la quota di quel mese.
+    \item Eventuali scansioni "non consumate" dal mese precedente non si cumulano in quello nuovo.
+\end{itemize}
+
+Le quote sono scelte e applicate dall'utente responsabile per l'utenza interessata dalla quota (ovvero quello che l'ha creata).
+
+L'effettivo processo di fatturazione al cliente finale non è considerato nel progetto e si suppone realizzato in altra sede.
+
+\subsection{Task di scansione}
+Il sistema software in oggetto dovrebbe essere in grado di definire delle \emph{scansioni} (da qui in avanti definite \textbf{task}) su dei nodi di rete.
+
+Scopo delle scansioni così definite è condurre un \textbf{vulnerability assessment} completo, ma privo di un vero e proprio \emph{penetration testing}, manuale o semi-automatico dirsivoglia.
+
+In aggiunta alla selezione del bersaglio, queste scansioni possono essere configurate dall'utente finale sia per quanto riguarda il livello di dettaglio dei risultati, che per quanto riguarda la loro organizzazione temporale.
+
+\subsubsection{Temporizzazione / calendarizzazione}
+In particolare, deve essere possibile definire dei task di scansione ricorrenti, eseguibili regolarmente, o comunque periodicamente, almeno secondo dei calendari prefissati a cadenza mensile.
+
+In alternativa, deve essere possibile per l'utente definire task di scansione al di fuori di calendari e ricorrenze periodiche, ad esempio per verificare una tantum la sicurezza di uno o più nodi.
+
+\subsection{Bersagli}
+Anche i bersagli considerati dalle scansioni devono poter essere anch'essi gestiti con libertà. In particolare, dovrebbero poter supportare nomi di dominio, indirizzi IPv4, IPv6 e anche insiemi di più nodi / IP. A tal fine devono essere supportati strumenti come la notazione CIDR.
+
+Inoltre, deve essere possibile anche specificare l'insieme degli host bersaglio attraverso file. Infatti, in contesti aziendali spesso gli host considerati da ogni connessione sono parecchi, sono enumerati in file generati da procedure automatiche ed è impraticabile pensare di inserirli ognuno a mano.
+
+\subsection{Risultati}
+Deve essere possibile visionare i risultati ottenuti dal sistema, con particolare attenzione alla severità delle vulnerabilità rilevate, alle soluzioni disponibili e ad ogni altro tipo di dettaglio reperito. Deve essere possibile filtrare i risultati ottenuti, ordinarli e maneggiarli con facilità.
+
+\section{Requisiti non funzionali}
+Ovvero come il sistema deve comportarsi e a quali standard di qualità, prestazioni, sicurezza e usabilità dovrà conformarsi.
+
+\subsection{Facilità d'uso}
+L'interfaccia (UI) e l'esperienza utente (UX) devono essere necessariamente facili e intuitive, con il minor numero possibile di complicazioni esposte all'utente finale.
+
+Il sistema deve pertanto integrare già di per sé dei \emph{default} sicuri e affidabili, lasciando all'utente finale la personalizzazione solo delle parti meno critiche. Il sistema dovrà anche nascondere tutti i dettagli tecnici, ove possibile, limitandosi a mostrare solo lo stretto necessario per comprendere \emph{cosa} e stato trovato e \emph{come} risolverlo (se possibile).
+
+\subsection{Efficienza}
+Il sistema deve essere necessariamente efficiente, senza rallentamenti eccessivi nella sua interfaccia. Questo diventa particolarmente critico in sede di reportistica ed analisi dei risultati, dove spesso i dati raccolti da questi sistemi possono accumularsi velocemente.
+
+\subsection{Sicurezza}
+Ovviamente, anche questo sistema deve essere il più possibile sicuro in ogni sua componente.
+
+\section{Requisiti di sistema}
+Ovvero quali specifiche tecniche e infrastrutturali dovranno essere rispettate dal sistema in oggetto.
+
+\subsection{Software as a Service}
+\label{saas}
+Il software che si intende creare sarà a tutti gli effetti un \textbf{SaaS} (Software as a Service). In un modello SaaS, l'applicazione software è installata su uno e più server remoti e vengono fornite agli utenti finali tramite Internet. Il software non viene acquistato, installato e gestito localmente, ma accedono al software e lo usano direttamente, solitamente tramite browser web e a fronte di un abbonamento periodico.
+
+In questo caso specifico la quota di scansione definita in \ref{quote-spec} è il privilegio che viene fornito a fronte del pagamento.
+
+\subsection{Integrazione con scanner esistenti}
+Per un componente così complesso e continuamente aggiornato non è realistico pensare di sviluppare da zero un nuovo scanner in grado di competere con le principali soluzioni commerciali. Inoltre, questi sistemi sono ovviamente delicati e critici, giustificando a maggior ragione la scelta di appoggiarsi a soluzioni più mature.
+
+Per queste ragioni, il sistema si integrerà con almeno un altro scanner preesistente. Sarebbe preferibile avere un sistema sufficientemente flessibile da garantire l'interoperabilità con diversi backend di scansione.
+
+Inoltre, lo scanner considerato dovrà necessariamente avere eccellenti doti di interoperabilità con altri sistemi software.
+
+\subsection{Architettura a microservizi}
+Come spiegato nella precedente sezione, il sistema in oggetto trarrebbe vantaggi dall'essere strutturato in un'architettura non monolitica. Questo sia a carattere di facilità di manutenzione, sia per velocizzare eventuali refactor a seguito di un cambio del backend.
+
+La separazione dei componenti inoltre facilita lo sviluppo di eventuali client, in grado di appoggiarsi alle API esposte dai singoli microservizi.
