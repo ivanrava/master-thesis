@@ -36,7 +36,7 @@ Si noti che il demone può anche essere operato direttamente senza passare per \
 
 \begin{figure}
     \includegraphics[width=\textwidth]{img/greenbone-community-22.4-architecture.png}
-    \caption{Architettura della release 22.4 (ultima al momento della stesura del documento)}
+    \caption{Architettura della release 22.4}
 \end{figure}
 
 \subsection{GSA}
@@ -46,17 +46,18 @@ Si noti che il demone può anche essere operato direttamente senza passare per \
 Si tratta del backend web per GSA (che invece fa le veci del semplice frontend). Realizzato interamente in C standard.
 
 \subsection{VT}
-Gli scanner veri e propri e le applicazioni eseguite da questi ultimi sui sistemi bersaglio per trovare le vulnerabilità, ovvero i \textbf{Vulnerability Test (VT)}. Gli scanner inclusi in GVM sono ovviamente \textbf{OpenVAS} e lo ``scanner'' \textbf{Notus}, in realtà un componente Python che razionalizza e ottimizza la verifica degli script NASL\footnote. A partire dalla versione 23.0 di OpenVAS entrambi i componenti sono stati sostituiti da \texttt{openvasd}
+Gli scanner veri e propri eseguono delle ``applicazioni'' sui sistemi bersaglio per trovare le vulnerabilità. Questi programmi sono i cosiddetti \textbf{Vulnerability Test (VT)} anche detti talvolta \textbf{Network Vulnerability Test (NVT)}. Essi sono scritti nel linguaggio \textbf{NASL}.
 
 \subsubsection{Linguaggio NASL}
 \textbf{NASL (NASL Attack Scripting Language)} è un \emph{Domain Specific Language} interpretato, con lo scopo di definire test per rilevare vulnerabilità su dispositivi di rete. Offre funzioni integrate di supporto per facilitare questo tipo di codifica.
 
 Gli script NASL vengono normalmente eseguiti all'interno delle scansioni OpenVAS, ma possono anche essere eseguiti direttamente dall'utente tramite l'interprete NASL fornito (\texttt{openvas-nasl}).
 
-\subsection{OpenVAS}
+\subsection{OpenVAS e Notus}
+Lo scanner incluso nel sistema è ovviamente \textbf{OpenVAS}, ma esiste anche un altro ``scanner'' utilizzabile, \textbf{Notus}. Questo in realtà non è nient'altro che un componente Python che razionalizza e ottimizza la verifica degli script NASL.
 
-\subsection{Notus}
-
+\subsubsection{openvasd}
+Si noti tuttavia che a partire dalla versione 23.0 di OpenVAS è stato introdotto \texttt{openvasd}: questo nell'intenzione di Greenbone vuole essere un unico demone che integra al suo interno tutte le funzioni di OpenVAS (lo scanner vero e proprio), Notus (l'ottimizzazione degli script NASL) e \texttt{ospd-openvas} (l'intermediario che usa il protocollo \textbf{OSP} per mediare la comunicazione tra scanner e \texttt{gvmd}). Il demone sarà riscritto con il linguaggio Rust, per renderlo più performante e moderno, risultando in una migliore manutenibilità. Inoltre, l'API OSP sarà sostituita da una API HTTP.
 
 \section{Motivazioni alla base della scelta}
 I principali motivi alla base di questa scelta sono:
