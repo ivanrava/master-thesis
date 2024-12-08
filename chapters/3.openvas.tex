@@ -30,6 +30,7 @@ L'architettura del framework Greenbone Vulnerability Management (GVM) è costitu
 
 \subsection{gvmd}
 Il demone UNIX \texttt{gvmd} è il cuore del framework GVM. Esso ha compiti di gestione e interconnessione tra tutte le principali componenti di basso livello del sistema, offrendo un'API di gestione operabile con il protocollo \textbf{Greenbone Management Protocol (GMP)}.
+\label{gmp}
 
 In particolare:
 \begin{itemize}
@@ -92,6 +93,26 @@ Di fatto, esistono due modi in cui il sistema può essere installato e quindi ge
 \end{itemize}
 
 Numerose distribuzioni Linux offrono anche dei pacchetti precompilati nelle loro \emph{repository} native, ma Greenbone ufficialmente non offre supporto per eventuali errori derivanti dall'installazione e dall'uso seguente di queste edizioni, non essendo coinvolta nel processo di compilazione impiegato.
+
+\section{Interoperabilità e protocollo GMP}
+Come anticipato in \ref{gmp}, il demone di sistema posto nel cuore del framework Greenbone è in grado di interfacciarsi non solo con i client nativi del sistema (cioè GSA), ma anche con client personalizzati attraverso un protocollo specifico.
+
+Questo protocollo è \textbf{GMP}, un dialetto personalizzato dell'XML e funziona mediante un processo di richiesta - risposta standardizzato con messaggi e attributi specifici.
+
+La comunicazione avviene tramite un punto di accesso comune, rappresentato da una \textbf{socket UNIX}. Lo sviluppatore può interfacciarsi con la socket in oggetto in più modi:
+\begin{itemize}
+    \item \textbf{Manualmente}, interfacciandosi direttamente con strumenti dedicati e confezionando a mano i messaggi XML secondo lo standard pubblicato da Greenbone.
+    \item \texttt{python-gvm}: si tratta di una libreria Python sviluppata e manutenuta direttamente da Greenbone, che realizza una comunicazione semplificata con la socket mascherando il protocollo GMP con un'API Python.
+    
+    La libreria possiede tutta una serie di vantaggi rispetto all'interfacciamento manuale e a basso livello con la socket:
+    \begin{itemize}
+        \item Non è necessario creare a mano il messaggio di richiesta XML, ma solo fornire i parametri necessari.
+        \item Gestione automatica dell'autenticazione (praticamente tutti i messaggi richiedono un'autenticazione di qualche tipo e anche permessi specifici come vedremo in seguito).
+        \item Gli errori sono gestiti in modo integrato con il meccanismo delle eccezioni di Python.
+        \item Le risposte sono automaticamente usate per idratare degli oggetti Python della libreria \texttt{lxml}, con integrato il supporto per la manipolazione del documento XML restituito.
+    \end{itemize}
+    \item \texttt{gvm-tools}: questo strumento esiste soprattutto per gli amministratori di sistema che intendono amministrare OpenVAS da linea di comando e desiderano automatizzare operazioni comuni. In pratica, si appoggia su script realizzati su \texttt{python-gvm}, diventando poco più di un \emph{wrapper} a linea di comando della suddetta libreria.
+\end{itemize}
 
 \section{Motivazioni alla base della scelta}
 I principali motivi alla base di questa scelta sono:
