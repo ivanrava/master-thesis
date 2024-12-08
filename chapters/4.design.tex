@@ -1,4 +1,4 @@
-In cui si descrive la progettazione del software: scelte progettuali, tecnologie e linguaggi adottati.
+In cui si descrive la progettazione del software a un più basso livello: scelte progettuali, tecnologie e linguaggi adottati.
 
 \section{Greenbone OpenVAS}
 Come backend di scansione per il sistema, inizialmente si è optato per interfacciarsi a \textbf{Greenbone OpenVAS}.
@@ -6,4 +6,8 @@ Come backend di scansione per il sistema, inizialmente si è optato per interfac
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
 
-\subsection{Interoperabilità con OpenVAS}
+\section{Database}
+Il framework di Greenbone già include un suo database per la gestione degli utenti e di ruoli associati, così come per le scansioni, i risultati e la reportistica. Inoltre, gran parte della logica di business è già definita e può essere personalizzata con un sistema di permessi abbastanza preciso e granulare.
+
+Per questo motivo, si è deciso di non introdurre ridondanza e complessità con un ulteriore database per limitarsi l'istanza di PostgreSQL integrata in GVM, preferendo rimanere aderenti alla base di dati esistente, effettivamente sposando in tutto e per tutto la struttura dei dati nel framework Greenbone.
+
