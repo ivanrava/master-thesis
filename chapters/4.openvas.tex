@@ -13,11 +13,15 @@ Nel 2017 i contributi di Greenbone diventarono palesi con un cambio di nome uffi
 
 \section{Modello di business}
 Greenbone OpenVAS e GVM possono ricevere gli aggiornamenti di sicurezza e configurazioni da due feed, entrambi manutenuti da Greenbone:
+\label{feed}
 \begin{itemize}
     \item \textbf{Greenbone Community Feed}: questo canale di aggiornamenti è totalmente gratuito e open-source. Contiene versioni minimali e preconfigurate di configurazioni di scansione, liste di porte, reportistica; ma soprattutto, in questo feed non sono incluse tutti i test di vulnerabilità disponibili, limitandosi a fornire esclusivamente quelli più critici e importanti. I dati sono aggiornati giornalmente secondo una policy di best effort e senza garanzie di alcun tipo.
     \item \textbf{Greenbone Enterprise Feed}: questo canale di aggiornamenti è invece a pagamento, ed è pensato per i clienti di Greenbone che usano il framework GVM in contesti aziendali. In questo canale sono forniti tutti i test di vulnerabilità disponibili, ma anche tutte le configurazioni di scansione e reportistica. Il servizio è inoltre garantito sotto SLA\footnote{\emph{Service Level Agreement}: contratto in cui un provider di un servizio garantisce agli utenti di quel servizio degli standard minimi di qualità e disponibilità.}
 \end{itemize}
 Il progetto è sostenuto economicamente soprattutto attraverso la sottoscrizione al secondo feed da parte dei clienti di tipo \emph{enterprise}. In aggiunta, Greenbone fornisce anche \emph{hardware appliance}\footnote{Dispositivi fisici progettati per eseguire una specifica funzione / applicazione, ottimizzati espressamente per quell'unico scopo.}, \emph{virtual appliance}\footnote{Sistemi informatici virtuali che eseguono una specifica funzione / applicazione, progettati per essere installati e usati in un software di virtualizzazione.} e una soluzione SaaS gestita direttamente da loro.
+
+\subsection{Greenbone Operating System (GOS)}
+Questo sistema operativo è quello che anima le \emph{appliance} fornite da Greenbone. Di fatto è poco più di un insieme di \emph{wrapper} grafici, TUI\footnote{Terminal User Interface} e non, per facilitare la manutenzione del sistema. Il software integra anche il supporto commerciale di Greenbone e vari miglioramenti di esperienza utente.
 
 \section{Architettura}
 L'architettura del framework Greenbone Vulnerability Management (GVM) è costituita da numerosi componenti interconnessi.
@@ -43,7 +47,7 @@ Si noti che il demone può anche essere operato direttamente senza passare per \
 \textbf{Greenone Security Assistant (GSA)}, ovvero l'interfaccia web nativa di Greenbone (realizzata con React), pensata per l'interazione umana / da parte dell'utente finale attraverso browser.
 
 \subsubsection{gsad}
-Si tratta del backend web per GSA (che invece fa le veci del semplice frontend). Realizzato interamente in C standard.
+Si tratta del web server che offre GSA. Di fatto svolge anche le funzioni di backend (che invece fa le veci del semplice frontend). Realizzato interamente in C standard.
 
 \subsection{VT}
 Gli scanner veri e propri eseguono delle ``applicazioni'' sui sistemi bersaglio per trovare le vulnerabilità. Questi programmi sono i cosiddetti \textbf{Vulnerability Test (VT)} anche detti talvolta \textbf{Network Vulnerability Test (NVT)}. Essi sono scritti nel linguaggio \textbf{NASL}.
@@ -53,11 +57,39 @@ Gli scanner veri e propri eseguono delle ``applicazioni'' sui sistemi bersaglio 
 
 Gli script NASL vengono normalmente eseguiti all'interno delle scansioni OpenVAS, ma possono anche essere eseguiti direttamente dall'utente tramite l'interprete NASL fornito (\texttt{openvas-nasl}).
 
+\subsection{SCAP (CVE, CPE)}
+\textbf{SCAP (Security Content Automation Protocol)} è uno standard aperto creato nei primi anni del 2000 dal \textbf{NIST}\footnote{National Institute of Standard and Technology} statunitense, uno dei principali riferimenti attualmente in termini di cybersecurity. Scopo dello standard SCAP è regolare i processi organizzativi di valutazione della sicurezza delle risorse informatiche e quindi automatizzarli.
+
+A tal fine, SCAP comprende un insieme di standard, definiti \textbf{componenti}. Segue una lista dei principali:
+\begin{itemize}
+    \item \textbf{Common Vulnerabilities and Exposures (CVE)}: fornisce e assegna identificativi univoci alle vulnerabilità note.
+    \item \textbf{Common Platform Enumeration (CPE)}: standardizza la descrizione dell'inventario informatico (applicazioni, servizi software, sistemi operativi, hardware) sin nei minimi dettagli.
+    \item \textbf{Common Configuration Enumeration (CCE)}: identifica univocamente diverse configurazioni di sistema.
+    \item \textbf{Common Vulnerability Scoring System (CVSS)}: valuta la severità di una vulnerabilità attraverso un punteggio $\in [0,10]$.
+\end{itemize}
+
+In GVM è integrato un servizio che attraverso i feed menzionati in \ref{feed} aggiorna continuativamente i dati SCAP di cui ha bisogno. In particolare, vengono sfruttati i dati \textbf{CVE} e \textbf{CPE}.
+
+Il framework inoltre mette a disposizione tramite \textbf{GSA} un calcolatore del punteggio \textbf{CVSS}.
+
 \subsection{OpenVAS e Notus}
 Lo scanner incluso nel sistema è ovviamente \textbf{OpenVAS}, ma esiste anche un altro ``scanner'' utilizzabile, \textbf{Notus}. Questo in realtà non è nient'altro che un componente Python che razionalizza e ottimizza la verifica degli script NASL.
 
 \subsubsection{openvasd}
 Si noti tuttavia che a partire dalla versione 23.0 di OpenVAS è stato introdotto \texttt{openvasd}: questo nell'intenzione di Greenbone vuole essere un unico demone che integra al suo interno tutte le funzioni di OpenVAS (lo scanner vero e proprio), Notus (l'ottimizzazione degli script NASL) e \texttt{ospd-openvas} (l'intermediario che usa il protocollo \textbf{OSP} per mediare la comunicazione tra scanner e \texttt{gvmd}). Il demone sarà riscritto con il linguaggio Rust, per renderlo più performante e moderno, risultando in una migliore manutenibilità. Inoltre, l'API OSP sarà sostituita da una API HTTP.
+
+\section{Installazione}
+Laddove l'edizione Enterprise è solitamente fornita nelle \emph{appliance}, rendendo di fatto inutile l'installazione, l'edizione gratuita invece deve essere installata dall'utente e configurata secondo le sue esigenze.
+
+Di fatto, esistono due modi in cui il sistema può essere installato e quindi gestito:
+\begin{itemize}
+    \item \textbf{Compilato da sorgenti}: l'utente deve scaricare il codice sorgente dalle \emph{repository} pubbliche e compilarlo manualmente.
+    
+    Questo procedimento ovviamente non è consigliato in produzione, visto il rischio di instabilità.
+    \item \textbf{Greenbone Community Containers}: in questo formato i singoli componenti precedentemente discussi sono segregati in \emph{container} Docker, garantendo riproducibilità di versioni e funzionalità. Tramite \texttt{docker-compose} i container sono quindi orchestrati e gestiti secondo l'architettura precedentemente esposta.
+\end{itemize}
+
+Numerose distribuzioni Linux offrono anche dei pacchetti precompilati nelle loro \emph{repository} native, ma Greenbone ufficialmente non offre supporto per eventuali errori derivanti dall'installazione e dall'uso seguente di queste edizioni, non essendo coinvolta nel processo di compilazione impiegato.
 
 \section{Motivazioni alla base della scelta}
 I principali motivi alla base di questa scelta sono:
