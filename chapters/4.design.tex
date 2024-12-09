@@ -3,11 +3,13 @@ In cui si descrive la progettazione del software a un più basso livello: scelte
 \section{Greenbone OpenVAS}
 Come backend di scansione per il sistema, inizialmente si è optato per interfacciarsi a \textbf{Greenbone OpenVAS}.
 
+\section{Base dati}
+Il framework di Greenbone già include un suo database interno per la gestione degli utenti e dei ruoli associati ad essi, così come per le scansioni, i risultati e la reportistica. Inoltre, gran parte della logica di business rilevante è già definita e può essere personalizzata con un sistema di permessi abbastanza preciso e granulare, rendendo possibile adattarla facilmente ai nostri scopi.
+
+Per questo motivo, si è deciso di non introdurre ridondanza e complessità con un ulteriore database, preferendo invece rimanere aderenti alla base di dati esistente, effettivamente sposando in tutto e per tutto la struttura dei dati proposta da Greenbone.
+
+\subsection{Schema dei dati}
+Lo schema dei dati proposto da Greenbone è 
+
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
-
-\section{Database}
-Il framework di Greenbone già include un suo database per la gestione degli utenti e di ruoli associati, così come per le scansioni, i risultati e la reportistica. Inoltre, gran parte della logica di business è già definita e può essere personalizzata con un sistema di permessi abbastanza preciso e granulare.
-
-Per questo motivo, si è deciso di non introdurre ridondanza e complessità con un ulteriore database per limitarsi l'istanza di PostgreSQL integrata in GVM, preferendo rimanere aderenti alla base di dati esistente, effettivamente sposando in tutto e per tutto la struttura dei dati nel framework Greenbone.
-
