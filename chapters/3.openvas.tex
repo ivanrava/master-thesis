@@ -81,6 +81,18 @@ Lo scanner incluso nel sistema è ovviamente \textbf{OpenVAS}, ma esiste anche u
 \subsubsection{openvasd}
 Si noti tuttavia che a partire dalla versione 23.0 di OpenVAS è stato introdotto \texttt{openvasd}: questo nell'intenzione di Greenbone vuole essere un unico demone che integra al suo interno tutte le funzioni di OpenVAS (lo scanner vero e proprio), Notus (l'ottimizzazione degli script NASL) e \texttt{ospd-openvas} (l'intermediario che usa il protocollo \textbf{OSP} per mediare la comunicazione tra scanner e \texttt{gvmd}). Il demone sarà riscritto con il linguaggio Rust, per renderlo più performante e moderno, risultando in una migliore manutenibilità. Inoltre, l'API OSP sarà sostituita da una API HTTP.
 
+\section{Altre funzionalità}
+
+\subsection{Scanner CVE / prognosi}
+\label{cve}
+In aggiunta allo scanner vero e proprio di OpenVAS, Greenbone mette a disposizione un ulteriore scanner ``fittizio'', detto \textbf{CVE}.
+
+Questo scanner di fatto effettua una prognosi della sicurezza del sistema, basandosi sulle informazioni già in suo possesso (ottenute in una scansione precedente; questo di fatto significa che questo scanner può operare solo a seguito di una scansione già conclusa ed efficace di OpenVAS).
+
+In particolare, se OpenVAS è riuscito a popolare i dati di CPE del sistema in oggetto, lo scanner CVE può utilizzare quei dati per stimare la sicurezza al momento attuale della scansione. Questo è fatto semplicemente confrontando i CPE dedotti con i CVE attualmente disponibili.
+
+Si noti che questa scansione è ``fittizia'', poiché di fatto non interagisce mai veramente con il sistema in oggetto (che, ad esempio, nel frattempo potrebbe essere stato aggiornato). Ne segue che i risultati di questo ``scanner'' possano generare falsi positivi con molta più facilità che in una scansione reale e tangibile con OpenVAS. D'altro canto, questa ``scansione'' è quasi istantanea, mentre OpenVAS richiede tempo, risorse computazionali e di rete (che potrebbero scarseggiare in ambienti con un grande numero di host da verificare).
+
 \section{Installazione}
 Laddove l'edizione Enterprise è solitamente fornita nelle \emph{appliance}, rendendo di fatto inutile l'installazione, l'edizione gratuita invece deve essere installata dall'utente e configurata secondo le sue esigenze.
 
