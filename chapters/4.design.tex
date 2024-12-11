@@ -38,6 +38,12 @@ Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figur
         \item \textbf{Warning}: vulnerabilità di medio livello, come vecchi standard crittografici ancora in uso, Denial of Service, ecc.
         \item \textbf{Hole / High / Critical}: vulnerabilità o problematiche ad alto livello di rischio e danno potenziale, come RCE, Privilege Escalation, EOL, ecc.
     \end{itemize}
+    \item Un rapporto organizza quanto trovato in ``risultati'' (\textbf{Result}). Queste entità contengono metadati che descrivono testualmente la vulnerabilità, l'eventuale soluzione e forniscono gli riferimenti a CVE, CVSS e CPE relativi.
+    \item Inoltre, l'esecuzione di un task rivela tutta una serie di \textbf{Asset} che vengono scoperti e inventariati durante la realizzazione del rapporto. Questi sono principalmente:
+    \begin{itemize}
+        \item \textbf{Host}, ovvero macchine fisiche o virtuali (questo comportamento può essere personalizzato come opzione dello scanner).
+        \item Sistemi operativi (\textbf{OS}), con vari gradi di precisione nel loro processo di \emph{fingerprinting}.
+    \end{itemize}
 \end{itemize}
 
 \begin{figure}
