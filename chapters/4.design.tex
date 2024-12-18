@@ -3,7 +3,7 @@ In cui si descrive la progettazione del software a un più basso livello: scelte
 \section{Greenbone OpenVAS}
 Come backend di scansione per il sistema, inizialmente si è optato per interfacciarsi a \textbf{Greenbone OpenVAS}.
 
-\section{Base dati}
+\section{Base di dati}
 Il framework di Greenbone già include un suo database interno per la gestione degli utenti e dei ruoli associati ad essi, così come per le scansioni, i risultati e la reportistica. Inoltre, gran parte della logica di business rilevante è già definita e può essere personalizzata con un sistema di permessi abbastanza preciso e granulare, rendendo possibile adattarla facilmente ai nostri scopi.
 
 Per questo motivo, si è deciso di non introdurre ridondanza e complessità con un ulteriore database, preferendo invece rimanere aderenti alla base di dati esistente, effettivamente sposando in tutto e per tutto la struttura dei dati proposta da Greenbone.
@@ -51,6 +51,65 @@ Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figur
     \caption{Schema dei dati d'interesse di GVM}
     \label{er-crow}
 \end{figure}
+
+\section{Architettura}
+Come anticipato in \ref{microservices}, in fase di analisi è emersa la necessità di realizzare sin dall'inizio un sistema modulare e disaccoppiato. Da un punto di vista puramente teorico e di architettura si deducono i seguenti sistemi con le seguenti funzionalità:
+\begin{itemize}
+    \item Uno o più backend di scansione. Come già detto, si vuole usare \textbf{OpenVAS} per questo componente, riservando l'integrazione con altri backend a sviluppi futuri.
+    \item Un sistema che fa da interconnessione e adattatore tra il backend di scansione, introducendo un livello di indirezione e fornendo funzionalità ad un sistema \emph{user-facing} attraverso un'API unificata.
+    \item Il sistema di interfaccia, che si interconnette con l'adattatore di cui sopra per fornire un \emph{frontend} facilitato e moderno per l'uso da parte dell'utente finale.
+\end{itemize}
+Tenuto conto delle moderne tendenze di sviluppo, dei framework supportati e della necessità di avere un sistema \emph{cross-platform}, si è deciso per sviluppare gli ultimi due sistemi tramite un'\textbf{applicazione web} composta da due parti distinte ricalcanti rispettivamente gli scopi dei sistemi sopracitati:
+\begin{itemize}
+    \item Un \emph{backend} realizzato in forma di \textbf{REST API}. Questo si appoggerà sul database interno di Greenbone OpenVAS indirettamente attraverso il protocollo GMP.
+    \item Un \emph{frontend} realizzato in forma di \textbf{SPA}, che sfrutta il backend per interagire con il sistema di scansione.
+\end{itemize}
+
+\section{Tecnologie usate}
+In questa sezioni si vuole discutere da un punto di vista più tecnico e concreto la scelta operata dal punto di vista meramente tecnologico.
+
+\subsection{Backend}
+
+\subsubsection{Linguaggio di programmazione}
+Dall'analisi delle librerie offerte da Greenbone per l'interconnessione dei suoi sistemi, effettuata in \ref{libraries}, emerge chiaramente la superiorità in quest'ambito del linguaggio \textbf{Python}, semplicemente per la presenza di una libreria software ufficialmente manutenuta e supportata.
+
+Infatti, utilizzare un linguaggio di programmazione diverso dal Python imporrebbe la necessità di sviluppare e manutenere in proprio una libreria che faccia da \emph{client} per la socket UNIX, dialogando con il protocollo GMP, realizzando di fatto un doppione di una libreria già esistente, solo per un altro linguaggio.
+
+Inoltre, sarebbe necessario implementare da zero lo schema dei dati descritto dal protocollo, aggiungere funzionalità di \emph{parsing}, controllo degli errori, ma soprattutto andrebbe aggiornando di volta in volta di pari passo con gli aggiornamenti al protocollo GMP.
+
+Per tutti questi motivi, si è considerato l'uso di \texttt{python-gvm} come una scelta quasi obbligata. L'unico vantaggio che poteva portare l'uso di una libreria sviluppata indipendentemente era l'integrazione diretta di una traduzione dal linguaggio XML in una struttura dati più ricca, di fatto realizzando un \textbf{ORM} a livello di libreria di interconnessione con la base dati (qua indirettamente rappresentata dal protocollo GMP). Questa funzione di traduzione non è implementata dalla libreria \texttt{python-gvm}, rendendo di fatto obbligatoria una piccola parte di gestione aggiuntiva a livello di modello\footnote{``Modello'' inteso nel senso del \emph{design pattern} \textbf{MVC, Model View Controller}, secondo il quale un'applicazione può essere scomposta in una parte di accesso e gestione dei dati (\emph{model}) e una parte di interfaccia (\emph{view}), mediate unicamente da un livello di interconnessione il più possibile semplice e minimale (\emph{controller}).} dei dati.
+
+\subsubsection{Framework}
+Per un progetto destinato ad un uso professionale è imperativo utilizzare un \emph{framework}, per garantire soprattutto sicurezza, facilità di manutenibilità e anche di sviluppo.
+
+Avendo scelto il linguaggio Python, emergono soprattutto tre framework sufficientemente manutenuti e utilizzati da poter essere comparati:
+\begin{itemize}
+    \item \textbf{Django} è un framework web ad alto livello che incoraggia lo sviluppo rapido e un design pulito e pragmatico. Di fatto è il framework web full-stack più popolare in ambito Python, comparabile con Laravel e Ruby on Rails per gli ecosistemi rispettivamente PHP e Ruby.
+    
+    Django offre una serie di funzionalità integrate per accelerare lo sviluppo, come un proprio ORM (Object-Relational Mapping), un sistema di autenticazione, un pannello di amministrazione automatico e strumenti per la gestione delle migrazioni del database. Utilizza un'architettura Model-Template-View, che separa la logica di business dalla presentazione in modo simile all'architettura MVC, e include protezioni contro attacchi comuni come SQL injection, cross-site scripting (XSS) e cross-site request forgery (CSRF).
+    \item \textbf{Flask} è un micro-framework leggero e flessibile per Python, progettato per essere semplice e facile da estendere. Esso fornisce solo le funzionalità di base, lasciando agli sviluppatori la libertà di scegliere individualmente le singole librerie e gli strumenti da utilizzare. La sua architettura minimalista lo rende ideale per progetti più piccoli o per applicazioni che richiedono una personalizzazione significativa. Grazie alla sua semplicità, è spesso utilizzato per sviluppare prototipi, applicazioni minimali o dal design particolarmente esotico, e può essere facilmente esteso con numerosi plugin e librerie di terze parti.
+    \item \textbf{FastAPI} è un framework moderno e veloce per costruire API con Python 3.6+ fortemente basato sullo standard \textbf{OpenAPI}. È progettato per essere altamente performante e facile da usare. FastAPI poggia sul framework web Starlette e la libreria Pydantic, che tramite le annotazioni di Python fornisce di default una validazione automatica dei dati. Inoltre, FastAPI supporta la generazione automatica e auto-aggiornante di una documentazione interattiva delle API sviluppata, grazie allo standard OpenAPI e Swagger UI o ReDoc. Infine, supporta anche la programmazione asincrona, a differenza di tutti gli altri framework.
+\end{itemize}
+In questo progetto si è deciso per l'adozione del framework Flask, sulla base di una serie di considerazioni tecniche e pratiche che ne evidenziano l'idoneità rispetto alle altre opzioni disponibili.
+
+Infatti, sebbene Django offra un ecosistema robusto e completo, è principalmente orientato verso applicazioni full-stack monolitiche e non si presta in modo ottimale alla creazione di REST API, nonostante l'esistenza di Django Rest Framework. Quest'ultimo, infatti, suggerisce che il framework non è stato concepito in partenza con questo scopo primario in mente.
+
+D'altra parte, FastAPI è un framework moderno progettato specificamente per la creazione di REST API, presentandosi sullo spettro opposto rispetto a Django, ma presenta altre limitazioni significative. La mancanza di un'API pubblica per i suoi componenti rende il progetto meno affidabile nel lungo termine, specialmente per applicazioni di grande rilevanza. Inoltre, la gestione della codebase lasciata in gran parte nelle mani di un singolo sviluppatore solleva interrogativi sulla sostenibilità del progetto.
+
+Flask, al contrario, si distingue per la sua flessibilità rendendolo particolarmente adatto per il caso specifico, che non prevedendo un database risulta abbastanza peculiare. Tra l'altro, sotto questo aspetto si discosta nettamente da FastAPI e Django, che possono risultare eccessivamente rigidi e guidati.
+
+Flask consente di plasmare l'applicazione secondo le specifiche esigenze del progetto, sfruttando un ecosistema di estensioni molto florido. Segue ora in che modo queste estensioni sono state scelte a livello architetturale.
+
+\subsubsection{Validazione dei dati e API REST}
+Questo consente tra l'altro di replicare le funzionalità più avanzate di FastAPI, come la validazione dei dati e la generazione automatica della documentazione.
+
+Queste funzionalità sono replicate in Flask attraverso l'uso di plugin ben mantenuti dalla comunità:
+\begin{itemize}
+    \item La validazione dei dati è gestita con la libreria \textbf{Marshmallow}, integrata in Flask con un'estensione che funge da collante tra le librerie.
+    \item \textbf{APIFlask} invece è un plugin / framework secondario che funge da wrapper rispetto a Flask. Il suo scopo è facilitare la creazione di API, ma integrano anche la generazione automatica di specifiche OpenAPI e documentazione interattiva tramite Swagger UI, ReDoc e non solo.
+\end{itemize}
+
+\subsection{Frontend}
 
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
