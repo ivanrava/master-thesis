@@ -65,12 +65,15 @@ Tenuto conto delle moderne tendenze di sviluppo, dei framework supportati e dell
     \item Un \emph{frontend} realizzato in forma di \textbf{SPA}, che sfrutta il backend per interagire con il sistema di scansione.
 \end{itemize}
 
-\section{Tecnologie usate}
-In questa sezioni si vuole discutere da un punto di vista più tecnico e concreto la scelta operata dal punto di vista meramente tecnologico.
+\section{REST API di Backend}
+REST è un paradigma ormai molto popolare di sviluppo delle API web. Una REST API spesso non implementa tutto lo standard REST, ma quanto segue sono le specifiche più comuni e popolarmente identificate come minime:
+\begin{itemize}
+    \item \textbf{Stateless}: ogni richiesta del client deve contenere tutte e sole le informazioni necessarie a comprendere la richiesta. In teoria il server non dovrebbe neanche mantenere stato e gestire l'autenticazione mediante token di accesso, ma in pratica questo aspetto dello standard è modificato per usare i cookie di sessione, specie quando la REST API è consumata esclusivamente da client web come una Single Page Application (scenario sempre più comune).
+    \item Le entità del sistema sono rappresentate come \textbf{risorse}, identificate dallo URL e da formati specifici come JSON (usato per questo progetto) o XML.
+    \item La semantica delle operazioni eseguibili sulle risorse è sottintesa dai \textbf{metodi HTTP} utilizzati (GET per ottenere la/e risorsa/e, POST per crearne di nuova, PUT / PATCH per aggiornare le risorse, DELETE per rimuoverne).
+\end{itemize}
 
-\subsection{Backend}
-
-\subsubsection{Linguaggio di programmazione}
+\subsection{Linguaggio di programmazione}
 Dall'analisi delle librerie offerte da Greenbone per l'interconnessione dei suoi sistemi, effettuata in \ref{libraries}, emerge chiaramente la superiorità in quest'ambito del linguaggio \textbf{Python}, semplicemente per la presenza di una libreria software ufficialmente manutenuta e supportata.
 
 Infatti, utilizzare un linguaggio di programmazione diverso dal Python imporrebbe la necessità di sviluppare e manutenere in proprio una libreria che faccia da \emph{client} per la socket UNIX, dialogando con il protocollo GMP, realizzando di fatto un doppione di una libreria già esistente, solo per un altro linguaggio.
@@ -79,7 +82,7 @@ Inoltre, sarebbe necessario implementare da zero lo schema dei dati descritto da
 
 Per tutti questi motivi, si è considerato l'uso di \texttt{python-gvm} come una scelta quasi obbligata. L'unico vantaggio che poteva portare l'uso di una libreria sviluppata indipendentemente era l'integrazione diretta di una traduzione dal linguaggio XML in una struttura dati più ricca, di fatto realizzando un \textbf{ORM} a livello di libreria di interconnessione con la base dati (qua indirettamente rappresentata dal protocollo GMP). Questa funzione di traduzione non è implementata dalla libreria \texttt{python-gvm}, rendendo di fatto obbligatoria una piccola parte di gestione aggiuntiva a livello di modello\footnote{``Modello'' inteso nel senso del \emph{design pattern} \textbf{MVC, Model View Controller}, secondo il quale un'applicazione può essere scomposta in una parte di accesso e gestione dei dati (\emph{model}) e una parte di interfaccia (\emph{view}), mediate unicamente da un livello di interconnessione il più possibile semplice e minimale (\emph{controller}).} dei dati.
 
-\subsubsection{Framework}
+\subsection{Framework}
 Per un progetto destinato ad un uso professionale è imperativo utilizzare un \emph{framework}, per garantire soprattutto sicurezza, facilità di manutenibilità e anche di sviluppo.
 
 Avendo scelto il linguaggio Python, emergono soprattutto tre framework sufficientemente manutenuti e utilizzati da poter essere comparati:
@@ -100,7 +103,7 @@ Flask, al contrario, si distingue per la sua flessibilità rendendolo particolar
 
 Flask consente di plasmare l'applicazione secondo le specifiche esigenze del progetto, sfruttando un ecosistema di estensioni molto florido. Segue ora in che modo queste estensioni sono state scelte a livello architetturale.
 
-\subsubsection{Validazione dei dati e API REST}
+\subsection{Validazione dei dati e API REST}
 Questo consente tra l'altro di replicare le funzionalità più avanzate di FastAPI, come la validazione dei dati e la generazione automatica della documentazione.
 
 Queste funzionalità sono replicate in Flask attraverso l'uso di plugin ben mantenuti dalla comunità:
@@ -109,7 +112,48 @@ Queste funzionalità sono replicate in Flask attraverso l'uso di plugin ben mant
     \item \textbf{APIFlask} invece è un plugin / framework secondario che funge da wrapper rispetto a Flask. Il suo scopo è facilitare la creazione di API, ma integrano anche la generazione automatica di specifiche OpenAPI e documentazione interattiva tramite Swagger UI, ReDoc e non solo.
 \end{itemize}
 
-\subsection{Frontend}
+\subsection{Autenticazione e sicurezza}
+La sicurezza del backend di una REST API è un aspetto fondamentale da considerare durante lo sviluppo di un'applicazione web e questa non fa eccezione. Esistono diversi metodi per autenticare una REST API, tra cui l'uso di \textbf{token di accesso} e \textbf{cookie di sessione}. Ogni approccio presenta vantaggi e svantaggi in termini di facilità d'uso e sicurezza, e la scelta del metodo più appropriato dipende dalle specifiche esigenze del progetto.
+
+Nel contesto di questo progetto, è stata presa la decisione di utilizzare i cookie di sessione per l'autenticazione. Questo metodo si distingue per la sua semplicità e sicurezza:
+\begin{itemize}
+    \item A differenza dei token di accesso, che devono essere inclusi manualmente in ogni richiesta HTTP, \textbf{i cookie di sessione vengono gestiti automaticamente dal browser}. Ciò significa che il programmatore non deve preoccuparsi di inviare il token ad ogni richiesta, semplificando notevolmente lo sviluppo dell'applicazione.
+    \item Inoltre, i cookie di sessione possono essere configurati con attributi di sicurezza come \texttt{Secure}, \texttt{HttpOnly} e \texttt{SameSite}:
+    \begin{itemize}
+        \item L'attributo \texttt{Secure} garantisce che il cookie venga trasmesso solo su connessioni HTTPS. Questo significa che le informazioni contenute nel cookie non possono essere intercettate durante il transito tra il client e il server, proteggendo così i dati sensibili da attacchi di tipo man-in-the-middle. Senza questo attributo, i cookie potrebbero essere inviati anche su connessioni non sicure, esponendo le informazioni a potenziali attaccanti.
+        \item L'attributo \texttt{HttpOnly} impedisce l'accesso al cookie tramite JavaScript. Questo è particolarmente importante per proteggere i cookie da attacchi di cross-site scripting (XSS), in cui un attaccante potrebbe tentare di eseguire codice malevolo nel contesto del browser dell'utente. Se un cookie è contrassegnato come HttpOnly, anche se un attaccante riesce a iniettare codice JavaScript nella pagina, non sarà in grado di accedere al contenuto del cookie, riducendo significativamente il rischio di furto di sessione.
+        
+        Se invece si usano i token è necessario maneggiarli con JavaScript per introdurli nelle richieste, di fatto introducendo un'ulteriore superficie d'attacco (XSS, appunto). Una mitigazione sarebbe istruire il server per fornire il token in un cookie \texttt{HttpOnly}, ma non tutte le librerie di gestione dei token supportano trasparentemente questa pratica, rendendo necessaria l'implementazione di codice ``collante'' che introduce ulteriori rischi di security. Sotto questo punto di vista la natura personalizzabile e spoglia di Flask ha favorito la nascita di un'ecosistema frammentato e senza ancora una libreria di sicurezza standard.
+        \item Infine, l'attributo \texttt{SameSite} offre una protezione contro attacchi di cross-site request forgery (CSRF). Questo attributo consente di specificare se il cookie deve essere inviato con richieste provenienti da siti esterni. Impostando SameSite su \texttt{Strict} o \texttt{Lax}, il cookie non verrà inviato con richieste che non provengono dallo stesso dominio, limitando così le possibilità di attacchi CSRF.
+        
+        Nel progetto in oggetto si è comunque implementato un token CSRF per ulteriore scrupolo, grazie al framework \texttt{WTForms} sviluppato dai manutentori di Flask.
+    \end{itemize}
+    \item La possibilità di effettuare il logout in modo semplice e diretto rappresenta un ulteriore vantaggio di questo approccio, senza la necessità di dover introdurre \emph{blacklist} o simili stratagemmi, pratica invece comune quando si lavora con token web.
+\end{itemize}
+
+Sebbene l'uso di token di accesso offra vantaggi significativi, come una maggiore scalabilità in contesti distribuiti e la necessità di supportare client diversi da un browser, queste problematiche sono considerate distanti nel progetto qui considerato e potrebbero per giunta non rivelarsi mai rilevanti. L'autenticazione web, invece, è un aspetto certo e inevitabile, e la scelta di cookie di sessione si allinea perfettamente con le esigenze attuali del progetto.
+
+Tuttavia, è importante notare che nulla vieta di adottare un approccio ibrido, simile a quello per esempio della popolare libreria ufficiale Sanctum del framework Laravel, che supporta entrambi i sistemi di autenticazione, cookie e token. In questo modo, si utilizzano i cookie di sessione per le applicazioni web a pagina singola (SPA), come nel nostro caso, e i token di accesso rimarrebbero a disposizione degli altri client, come le applicazioni mobili. Questa strategia consentirebbe di sfruttare i vantaggi di entrambi i metodi, garantendo una maggiore flessibilità e adattabilità alle diverse esigenze degli utenti e dei dispositivi.
+
+La libreria scelta per gestire questo ambito è la popolare e open-source \texttt{flask-login}.
+
+\subsection{Gestione sessioni}
+La gestione delle sessioni è un aspetto cruciale nello sviluppo di applicazioni web, e la scelta del metodo di memorizzazione delle sessioni può influenzare significativamente la sicurezza e le prestazioni dell'applicazione. Di default, Flask utilizza esclusivamente sessioni \emph{client-side}, il che significa che i dati della sessione vengono memorizzati direttamente nei cookie del browser dell'utente. Questo approccio comporta che ogni volta che il client effettua una richiesta al server, il cookie contenente le informazioni della sessione viene inviato insieme alla richiesta. Sebbene questo metodo possa sembrare semplice e immediato, presenta alcune limitazioni, tra cui il fatto che i dati sensibili sono visibili a chiunque, siccome la crittografia usata per il cookie non garantisce la confidenzialità dei dati al suo interno, ma solo la sua integrità.
+
+Per superare queste limitazioni, si è deciso per l'uso di \texttt{flask-session}, una libreria che consente a Flask di gestire sessioni \emph{server-side}. Con le sessioni server-side, i dati della sessione vengono memorizzati sul server, mentre il client riceve nel cookie solamente un identificatore univoco della sessione. Questo approccio offre numerosi vantaggi in termini di sicurezza, poiché i dati sensibili non vengono mai esposti al client. Inoltre, consente una gestione più efficiente delle sessioni, poiché il server può mantenere lo stato dell'utente senza dover inviare continuamente informazioni sensibili attraverso la rete.
+Rimane comunque necessario difendersi da attacchi come la \textbf{Session Fixation}; questa parte è approfondita in \ref{session-fixation}.
+
+Per implementare le sessioni \emph{server-side} di Flask Session, si è deciso per l'uso di \textbf{Redis}, un sistema di archiviazione in memoria, strutturato come un database chiave-valore, noto per la sua velocità e leggerezza. È particolarmente adatto per la gestione delle sessioni o di piccole \emph{cache}, poiché consente un accesso rapido e scalabile ai dati memorizzati. Inoltre, Redis è ampiamente supportato dalla libreria scelta ed è attivamente sviluppato, il che scongiura rischi di integrazione.
+
+\subsection{CORS e DotEnv}
+Durante lo sviluppo locale dell'applicazione, è emersa la necessità di gestire le richieste in regime di \textbf{Cross-Origin Resource Sharing (CORS)}. CORS è un meccanismo di sicurezza implementato nei browser che consente o limita le richieste effettuate da un'origine (domain) a un'altra. Questo è particolarmente rilevante quando si sviluppano applicazioni web che interagiscono con API o risorse ospitate su domini diversi, e negli ambienti di sviluppo è comune. Senza una corretta configurazione di CORS, il browser bloccherebbe automaticamente le richieste provenienti da origini non autorizzate, impedendo così il corretto funzionamento dell'applicazione. Per affrontare questa problematica, è stata utilizzata un'estensione di Flask specificamente progettata per gestire CORS (\texttt{Flask-CORS}), che consente di configurare facilmente le politiche di accesso e di specificare quali origini sono autorizzate a interagire con l'API.
+
+In aggiunta alla gestione di CORS, è fondamentale considerare che molte funzionalità dell'applicazione possono variare a seconda dell'ambiente in cui si trova (come CORS stesso; come si vedrà nell'installazione finale dettagliata in \ref{deployment} non sarà necessario usarlo). Ad esempio, alcune funzionalità potrebbero essere attivate in fase di sviluppo, ma disattivate in produzione per motivi di sicurezza o prestazioni. Per gestire in modo efficace queste configurazioni environment-dependent, è stato adottato lo standard \textbf{DotEnv}. DotEnv è una convenzione per la gestione delle variabili di ambiente, che consente di definire configurazioni specifiche per ciascun ambiente in file di testo semplici, solitamente denominati \texttt{.env}. Questi file contengono coppie chiave-valore che possono essere facilmente lette dall'applicazione al momento dell'avvio.
+
+L'integrazione di DotEnv con Flask è facilitata da un'altra estensione, \texttt{Flask-DotEnv}, che consente di caricare automaticamente le variabili di ambiente definite nel file .env all'interno dell'applicazione. Questo approccio non solo semplifica la gestione delle configurazioni, ma migliora anche la sicurezza, poiché consente di mantenere informazioni sensibili, come chiavi API e credenziali di accesso, al di fuori del codice sorgente (i file .env non sono mai aggiunti al sistema di controllo della versione, ma solo una loro versione di esempio, nel caso specifico denominata \texttt{.env.example}). In questo modo, è possibile evitare di esporre dati sensibili in repository pubblici o in ambienti di sviluppo condivisi.
+
+\section{SPA di Frontend}
+
 
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
