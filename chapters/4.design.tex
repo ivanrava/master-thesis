@@ -153,7 +153,47 @@ In aggiunta alla gestione di CORS, è fondamentale considerare che molte funzion
 L'integrazione di DotEnv con Flask è facilitata da un'altra estensione, \texttt{Flask-DotEnv}, che consente di caricare automaticamente le variabili di ambiente definite nel file .env all'interno dell'applicazione. Questo approccio non solo semplifica la gestione delle configurazioni, ma migliora anche la sicurezza, poiché consente di mantenere informazioni sensibili, come chiavi API e credenziali di accesso, al di fuori del codice sorgente (i file .env non sono mai aggiunti al sistema di controllo della versione, ma solo una loro versione di esempio, nel caso specifico denominata \texttt{.env.example}). In questo modo, è possibile evitare di esporre dati sensibili in repository pubblici o in ambienti di sviluppo condivisi.
 
 \section{SPA di Frontend}
+Una \textbf{SPA (Single Page Application)} è un tipo di applicazione web che carica una singola pagina HTML e aggiorna dinamicamente il contenuto in risposta alle interazioni dell'utente, senza la necessità di ricaricare l'intera pagina. Questo approccio migliora notevolmente l'esperienza utente, poiché consente transizioni più fluide e tempi di risposta più rapidi, rendendo l'applicazione più reattiva e simile a un'applicazione desktop, cosa desiderata per il progetto in questione.
 
+\subsection{Scelta tra SPA e rendering ibrido}
+In alternativa alla scelta di sviluppare una SPA, si sarebbe potuto considerare un approccio di rendering ibrido, come quello offerto da Inertia.js o librerie simili. Questo tipo di soluzione consente di combinare le caratteristiche delle applicazioni tradizionali con quelle delle SPA, permettendo di costruire interfacce utente moderne senza dover gestire un'API REST separata. Tuttavia, è importante notare che, attualmente, non esistono librerie ben supportate per Flask che offrano un'integrazione simile a quella di Inertia.js, limitando così le opzioni disponibili per implementare questo approccio.
+
+Un ulteriore aspetto da considerare è che l'adozione di un rendering ibrido tenderebbe a riconnettere le componenti dell'applicazione, accoppiando di fatto la SPA e la REST API in un'unica architettura monolitica. Questo contrasta con l'obiettivo iniziale del progetto, che era quello di disaccoppiare il frontend dal backend, consentendo una maggiore flessibilità e scalabilità. La separazione delle preoccupazioni tra client e server è fondamentale per garantire che ciascuna parte dell'applicazione possa evolversi indipendentemente, facilitando aggiornamenti e manutenzione senza influenzare l'altra componente.
+
+\subsection{Framework}
+Nella selezione del framework, si sono confrontati i tre framework più popolari e ampiamente manutenuti: \textbf{Angular}, \textbf{React} e \textbf{Vue.js}.
+
+Tutti questi framework servono allo scopo di costruire interfacce utente nel modo più semplice e standardizzato possibile, tipicamente mediante le seguenti comuni caratteristiche:
+\begin{itemize}
+    \item \textbf{Pattern MVVM (Model-View-ViewModel)}: Questi framework seguono il pattern MVVM, che separa la logica di business (Model) dalla presentazione (View) e gestisce l'interazione tra i due attraverso un ViewModel. Questo approccio consente una chiara separazione dei compiti, facilitando la manutenzione e l'estensibilità del codice.
+    
+    \item \textbf{Reattività}: I framework implementano un sistema reattivo che consente di aggiornare automaticamente la vista quando i dati cambiano. Questo significa che gli sviluppatori possono definire legami tra i dati e la UI, riducendo la necessità di manipolazioni manuali del DOM e migliorando l'efficienza dell'applicazione. Anzi, in questi framework manipolare direttamente il DOM è spesso visto come un \emph{anti-pattern}.
+    
+    \item \textbf{Separazione in Componenti}: Angular, React e Vue promuovono un'architettura basata su componenti, in cui l'interfaccia utente è suddivisa in parti riutilizzabili e modulari. Ogni componente gestisce il proprio stato e la propria logica, facilitando la riusabilità e anche la verificabilità della correttezza del codice.
+    
+    \item \textbf{Virtual DOM}: React e Vue utilizzano un Virtual DOM, una rappresentazione in memoria del DOM reale, per ottimizzare le operazioni di aggiornamento. Questo approccio consente di ridurre il numero di manipolazioni dirette del DOM, migliorando le prestazioni complessive dell'applicazione.
+    
+    \item \textbf{Routing}: La maggior parte di questi framework offre soluzioni integrate o librerie per la gestione dei diversi percorsi dell'applicazione, consentendo di navigare tra diverse viste o componenti senza ricaricare l'intera pagina. Questo è particolarmente utile, se non necessario, per la creazione di SPA, dove la navigazione tra le viste deve svolgersi in una sola pagina.
+    
+    \item \textbf{Gestione dello stato}: I framework forniscono strumenti o librerie per la gestione dello stato dell'applicazione, consentendo di mantenere e condividere dati tra componenti in modo efficiente. Questo è fondamentale per applicazioni complesse che richiedono una sincronizzazione dei dati tra diverse parti dell'interfaccia utente. Esistono sia meccanismi di condivisione diretta tra componenti padre e componenti figlio, ma anche librerie dedicate alla centralizzazione globale dello stato (da usare con ovvia parsimonia), come \emph{Vuex}, \emph{Pinia} e \emph{Redux}.
+    
+    \item \textbf{Supporto per i test}: Angular, React e Vue offrono strumenti e librerie per facilitare il testing delle applicazioni, consentendo agli sviluppatori di scrivere unit test o feature test (spesso detti test End-to-End o E2E in quest'ambito) per garantire la qualità del codice e il corretto funzionamento delle funzionalità.
+\end{itemize}
+
+Dopo un'attenta valutazione, è stato scelto \textbf{Vue.js} soprattutto per la sua facilità e intuitività, riconosciuto che in ultima analisi questi framework sono molto simili tra loro in termini di funzionalità e le preferenze sono spesso soggettive e legate agli stili di programmazione più congeniali ad uno sviluppatore piuttosto che ad un altro.
+
+\subsection{Meta-framework}
+Per massimizzare le potenzialità di Vue.js, è stata adottato anche \textbf{Nuxt.js}, un \emph{meta-framework} costruito sopra Vue.js. Nuxt.js offre una serie di funzionalità avanzate che ampliano le capacità di Vue, rendendo lo sviluppo di SPA ancora più efficiente e strutturato, automatizzando molti dei compiti più comuni e offrendo tutta una serie di comodità per lo sviluppatore:
+\begin{itemize}
+    \item La funzionalità più popolare di Nuxt è il \textbf{Server-Side Rendering (SSR)}, grazie al quale l'applicazione può essere generata lato server prima di essere inviata al client che la richiede. Questo è reso possibile grazie all'introduzione di un piccolo componente server (nel caso di Nuxt, un piccolo server Node creato al momento del deployment), che si occupa di generare le pagine complete lato server renderizzando il codice JavaScript in remoto, lasciando al client solo il compito di idratare i pochi contenuti di sua competenza.
+    
+    Questo comporta tutta una serie di vantaggi in termini sia di tempi di caricamento iniziali che di indicizzazione dai parte dei motori di ricerca. Nel caso specifico in oggetto, l'ottimizzazione SEO non è necessaria siccome l'applicazione farà realisticamente parte di un \emph{back-office} e sarà inaccessibile ai motori di ricerca / non indicizzata in Internet.
+
+    Volendo, SSR permette anche di generare siti completamente statici (SSG: Static Site Generation), renderizzando offline ogni pagina in semplice HTML, ed eliminando quasi del tutto il JavaScript complesso dei framework. Questo riduce il lavoro del webserver (che deve semplicemente caricare il file dal filesystem) e del client (che deve solo eseguire pochissimo codice JavaScript e non deve aspettare il caricamento della libreria di Vue, quella relativamente più pesante in termini di chiamate di rete) aumentando ancora di più le prestazioni.
+    \item In Nuxt.js le rotte web vengono create automaticamente in base alla struttura delle cartelle, di fatto inducendola dal filesystem. Questo toglie il tedioso e ripetitivo carico di lavoro relativo alla registrazione dei componenti web come pagine navigabili. Questo inoltre facilita un'architettura standard, facilmente mantenibile e riduce errori e imprevisti dovuti a dimenticanze e alle inevitabili ridondanze.
+    \item Nuxt.js include anche altre funzionalità di ottimizzazione delle prestazioni, come il \textbf{caricamento differito dei componenti} e la loro separazione intelligente in più risorse di ridotte dimensioni, tutto in modo automatico.
+    \item Inoltre, Nuxt include anche tutto un ecosistema di moduli che facilita e garantisce il supporto alle librerie più comuni dell'ecosistema Vue (Pinia, Vee-Validate, ecc.) e più in generale del moderno ecosistema EcmaScript6 basato su Vite (eslint, Tailwind CSS, Iconify, ecc.)
+\end{itemize}
 
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
