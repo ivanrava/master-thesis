@@ -1,0 +1,86 @@
+In cui si spiega nei dettagli lo sviluppo del componente di backend web, interfaccia unificata ai backend di scansione.
+
+Come anticipato, il backend si interfaccerà esclusivamente con \textbf{Greenbone OpenVAS}.
+
+\section{Virtual environment e gestione delle librerie}
+In programmazione è fondamentale stabilire un ambiente di sviluppo ben strutturato e isolato. A tal fine, è stato utilizzato un \textbf{virtual environment}, comunemente abbreviato in \texttt{virtualenv}, pratica standard della gestione di progetti Python.
+
+Un virtual environment è un ambiente isolato che consente di installare pacchetti Python senza influenzare il sistema globale o altri progetti. Questa pratica è considerata una buona norma nello sviluppo software, poiché garantisce che le dipendenze di un progetto siano gestite in modo indipendente, evitando conflitti tra librerie e versioni diverse. Inoltre, l'uso di un virtual environment facilita la riproducibilità del progetto, consentendo ad altri sviluppatori di configurare facilmente l'ambiente di lavoro con le stesse dipendenze. In questo caso il progetto è stato sviluppato singolarmente dall'autore di questo documento, ma la riproducibilità del progetto è comunque fondamentale in sede di deployment, come si vedrà in \ref{deployment-backend}.
+
+Inizialmente, si è optato per l'uso di \textbf{Poetry}, un gestore di dipendenze e un sistema di packaging avanzato per Python che semplifica la gestione delle librerie e delle versioni. Poetry offre funzionalità avanzate, come la risoluzione automatica delle dipendenze e la creazione di un file di lock, che garantisce che le stesse versioni delle librerie siano utilizzate in tutti gli ambienti. Tuttavia, dopo una valutazione approfondita, si è deciso di passare a un approccio più semplice e comune, utilizzando un file \texttt{requirements.txt} per gestire le dipendenze del progetto. Questa scelta è stata motivata dalla volontà di ridurre la complessità e le astrazioni associate all'uso di Poetry, poiché le funzionalità aggiuntive offerte da quest'ultimo non erano state sfruttate nel contesto specifico del progetto. In particolare, Poetry è maggiormente indicato per la gestione delle dipendenze di \emph{codebase} utilizzate poi come librerie in altri progetti.
+
+Il file \texttt{requirements.txt} è un formato standard per elencare le dipendenze di un progetto Python. In pratica esso è spesso realizzato automaticamente mediante la redirezione dell'output del comando \texttt{pip freeze}, che elenca tutte le dipendenze di progetto. Il file in questo modo contiene e specifica tutte le librerie richieste con le relative versioni, facilitando l'installazione delle stesse nei nuovi ambienti tramite il comando \texttt{pip install -r requirements.txt}. Questo approccio è ampiamente utilizzato nella comunità Python e risulta particolarmente efficace per progetti di dimensioni moderate, dove la gestione delle dipendenze non richiede funzionalità avanzate. Come questo progetto, che non sarà una libreria, ma piuttosto un semplice progetto \emph{standalone} con poche dipendenze di comodo.
+
+\section{Controllo di versione}
+Tutto il codice è stato manutenuto sotto \textbf{Git} come sistema di controllo versione (VCS: Version Control System). Git e altri strumenti simili sono fondamentali per la gestione del codice sorgente, poiché consentono agli sviluppatori di tenere traccia delle modifiche apportate al progetto nel tempo, ed eventualmente di annullarle, navigando tra le varie versioni del codice.
+
+\section{Struttura dei package}
+L'organizzazione del progetto Flask è stata adattata alle specifiche esigenze della REST API in questione, ottimizzando la struttura per garantire chiarezza e manutenibilità, rimuovendo le parti non necessarie. Per esempio, è stata omessa la cartella \texttt{templates/}, tipicamente utilizzata per i template Jinja nelle applicazioni web tradizionali, poiché non è necessaria in un contesto API, dove l'interazione avviene principalmente attraverso richieste e risposte in formato JSON.
+
+Tutto il codice è stato collocato all'interno di un package Python denominato \texttt{gvmrest}, che rappresenta il nome del progetto. All'interno di questo package principale, sono stati creati tre ulteriori package: \texttt{blueprints}, \texttt{gmp} e \texttt{models}:
+
+\begin{itemize}
+    \item \texttt{blueprints} contiene i Blueprint di Flask, una funzionalità che consente di organizzare l'applicazione in moduli logici. Questa separazione aiuta a evitare la creazione di file troppo grandi e con poca coerenza interna, facilitando la gestione del codice e migliorando la leggibilità. I Blueprint permettono di raggruppare le route e le relative logiche in base ai domini dell'API, rendendo l'architettura più modulare e scalabile.
+    \item \texttt{gmp} è dedicato alla gestione dell'autenticazione, comprendente funzionalità come login, logout e recupero dell'utente loggato, interfacciandosi con l'API di Greenbone OpenVAS tramite il protocollo GMP (Greenbone Management Protocol). Questo package funge da collante tra Flask e GMP, utilizzando la libreria \texttt{python-gvm} di Greenbone per facilitare le comunicazioni e le operazioni necessarie.
+    \item Infine, il package \texttt{models} contiene la definizione delle entità, organizzate in file separati, che rappresentano il modello dei dati indotto dal protocollo GMP. Per quanto verbosa in termini di numero di file, questa struttura consente di mantenere il codice ben organizzato e facilmente estensibile, facilitando l'aggiunta di nuove entità o modifiche a quelle esistenti.
+\end{itemize}
+
+\subsection{File di inizializzazione}
+I file \texttt{\_\_init\_\_.py} di alcuni di questi package sono stati utilizzati in modo peculiare per ottimizzare la configurazione dell'applicazione:
+\begin{itemize}
+    \item Nel package principale \texttt{gvmrest} il file di \emph{init} implementa un'\emph{application factory} (o \emph{factory function}), un design pattern comune nei progetti Flask.
+    \item Nel package di secondo livello, \texttt{blueprints}, l'inizializzazione contiene una funzione dedicata alla registrazione di tutti i Blueprint Flask contenuti nel package. Questo approccio consente all'\emph{application factory} di richiamare semplicemente questa funzione, evitando la necessità di enumerare singolarmente tutti i blueprint.
+    
+    In questo modo, il punto di variabilità si concentra esclusivamente nel file \texttt{\_\_init\_\_.py} del package, semplificando la manutenibilità e rendendo più agevole l'aggiunta o la rimozione di blueprint in futuro.
+\end{itemize}
+
+\subsection{Schemi Marshmallow}
+Dalla scelta di utilizzare il meta-framework di APIFlask deriva anche la scelta obbligata della libreria di gestione degli schemi dei dati: Marshmallow (invece di Pydantic). APIFlask supporta di fatto solo Marshmallow, il che ha reso questa libreria una scelta naturale, anticipata già in \ref{design-marshmallow}.
+
+Marshmallow si integra facilmente con Flask tramite appositi plugin, ma APIFlask offre una serie di automazioni che semplificano la validazione degli schemi in input (JSON) e l'auto-formattazione delle entità restituite in JSON. Queste automazioni includono il filtraggio e il parsing degli attributi sia in input che in output, permettendo conversioni basilari e avanzate, con la possibilità di utilizzare callback e hook astratti offerti dalle classi base di Marshmallow e personalizzabili nelle singole classi di schema attraverso override.
+
+Tuttavia, a differenza di Pydantic, Marshmallow non consente di utilizzare direttamente i tipi nativi di Python, ma richiede l'uso di classi wrapper specifiche della libreria. Questo introduce un certo livello di astrazione indesiderata, anche se i vantaggi dall'uso di Marshmallow superano gli svantaggi che porta il non usare una libreria di questo tipo.
+
+Per ogni entità, è necessario definire uno schema Marshmallow. Questi schemi sono stati organizzati in file separati, tipicamente uno schema per file.
+
+I file di schema sono stati raggruppati in due package \texttt{schemas/}, che si trovano sotto \texttt{models/} (dove sono specificate le entità e i modelli di business logic) e \texttt{blueprints/} (dove sono definiti i formati delle richieste API, che spesso sono lievemente diversi o semplificati rispetto ai dati reali, e delle risposte API, che possono utilizzare la paginazione e avvolgere i dati di base, rendendo insufficiente lo schema della singola entità in alcuni casi).
+
+\section{ORM basato su GMP}
+Una parte importante dello sviluppo è stata la creazione di un \textbf{ORM (Object-Relational Mapping)} basato sull'API di GMP.
+
+\subsection{Razionale}
+Un \textbf{ORM} è una tecnica che consente di interagire con un database utilizzando oggetti di programmazione, piuttosto che scrivere direttamente query SQL. Questo approccio semplifica la gestione dei dati, permettendo agli sviluppatori di lavorare con le entità come se fossero oggetti, senza doversi preoccupare della complessità delle operazioni di database sottostanti.
+
+Nel nostro caso, la libreria \texttt{python-gvm} restituisce entità in formato XML, che alla fine è essenzialmente puro testo / stringa di caratteri. Per tradurre queste entità in JSON, è necessario effettuare un parsing. Tuttavia, una semplice conversione da XML in oggetti JSON non è sufficiente, poiché il servizio Python deve anche eseguire query sulle entità correlate fra loro da relazioni (ad es. come reperire i report generati da un task di scansione specifico). Per fare questo occorre che le entità siano in qualche modo ``intelligenti'', e una rappresentazione ``stupida'' di tipo testuale è scomoda oltre che inefficiente.
+
+Stante così le cose si può comunque costruire direttamente le query al sistema Greenbone utilizzando il linguaggio Powerfilter descritto in \ref{powerfilter} (in questo contesto Powerfilter rappresenta in tutto e per tutto il linguaggio SQL). Tuttavia, questo approccio comporterebbe un'interazione diretta con il livello più basso, con i controller del pattern MVC (i blueprint Flask, in questo caso) che dovrebbero gestire direttamente la logica dell'applicazione. È preferibile mantenere questa logica all'interno dei modelli, che sono stati progettati proprio per questo scopo.
+
+Le classi di modello implementano di conseguenza un ORM atipico e unico nel suo genere. Di solito, un ORM si interfaccia direttamente con un'istanza di database, solitamente usando internamente il linguaggio SQL; ma, nel nostro caso, l'ORM si connette invece a un database indirettamente esposto tramite un'API pubblicata su Socket UNIX (GMP e il linguaggio di query Powerfilter).
+
+\subsection{Implementazione concreta}
+In questo ORM ogni sua classe modello è creata a partire dal documento XML reperito da GMP, che rappresenta un numero qualsiasi di entità reperite dal sistema.
+
+Questo documento XML ritornato dalla libreria è già un oggetto Python (un'istanza di \texttt{Element} della dipendenza \texttt{lxml}) che facilita il parsing e l'estrazione dei dati. In sostanza, questo oggetto rappresenta il documento in RAM, consentendo delle operazioni di ricerca e manipolazione giusto un po' più comode rispetto alla cruda manipolazione di testo. Tuttavia, questa flessibilità non è sufficiente e la rappresentazione è troppo semplice per i nostri scopi.
+
+Ogni classe dell'ORM agisce nel medesimo modo: il costruttore della classe modello estrae il contenuto del documento XML utilizzando semplici query ai tag del documento (con l'API di \texttt{lxml}), sfruttando metodi nativi o interfacce XPath\footnote{XPath è un linguaggio di query avanzato utilizzato per navigare attraverso gli elementi e gli attributi di un documento XML, secondo logiche complesse e permettendo di selezionare nodi specifici in modo altamente flessibile ed efficiente.}.
+
+Questa procedura consente di realizzare una prima traduzione da XML a un oggetto Python specifico per l'entità rappresentata (\texttt{Task}, \texttt{Report}, eccetera). A questo punto, ogni classe può offrire metodi specifici che astraggono l'interazione con le altre entità e, indirettamente, con il database. Di fatto si crea un ORM, ma astraendo qualcosa di più specialistico rispetto al più comune caso di un database SQL direttamente controllato da noi.
+
+In questo modo, i controller (blueprint nel nostro caso) rimangono snelli e focalizzati, mentre il codice di basso livello e l'accesso ai dati sono segregati nei modelli e organizzati in metodi separati. Questo approccio per quanto inusuale aumenta la coerenza e riduce l'accoppiamento, migliorando in modo decisivo la manutenibilità e la chiarezza del codice. Non solo, la separazione del codice di accesso ai dati in metodi distanti favorisce e incoraggia anche un riuso del codice che non sarebbe altresì possibile.
+
+\subsection{API generica / paginazione}
+Nell'implementazione dell'ORM, sono stati creati metodi generici per facilitare la frequente interazione con le entità restituite dall'API GMP. Poiché queste entità sono quasi sempre restituite paginate in partenza, è fondamentale gestire la paginazione a livello di superclasse.
+
+La classe \texttt{Model}, che funge da superclasse per tutte le classi di modello, implementa due metodi principali per l'interazione con il database:
+\begin{itemize}
+    \item \texttt{all()}: questo metodo restituisce tutti i record di un determinato modello, ``paginati'' di default, insieme al numero totale di record disponibili (non solo quelli nella pagina corrente). \texttt{all()} accetta anche una \texttt{filter\_string} definita in Powerfilter, che gestisce effettivamente la paginazione. È decorato come \texttt{@abstractmethod}, il che significa che l'implementazione specifica deve essere fornita dalle sottoclassi concrete. Tuttavia, l'idea è che \texttt{all()} non venga utilizzato direttamente, ma solo attraverso l'altro metodo di questa classe.
+    \item \texttt{paginate()}: Questo metodo concreto riceve tutti i parametri relativi alla paginazione, come il numero di pagina, il numero di oggetti per pagina, l'ordinamento (ascendente o discendente e su quale attributo) e il filtraggio (gestito tramite una \texttt{filter\_string} in Powerfilter). \texttt{paginate()} esegue i calcoli necessari per determinare la pagina e costruisce una nuova \texttt{filter\_string} decorando quella iniziale con i valori necessari per gestire la paginazione. Questa \texttt{filter\_string} viene poi passata a \texttt{all()}, che recupera i record appropriati. Il metodo \texttt{paginate()} restituisce quindi i record paginati, insieme a informazioni utili per il frontend, come il numero totale di pagine e il numero totale di record.
+\end{itemize}
+
+Inoltre, la classe \texttt{Model} implementa anche il \emph{magic method} \texttt{\_\_repr\_\_()}, fornendo un'implementazione di default per la stampa in ambiente CLI. In particolare, l'implementazione usa \texttt{pprint} per stampare la rappresentazione interna a dizionario dell'oggetto, risultando particolarmente utile durante il debug o i test.
+
+Per gestire la definizione di classi e metodi astratti, è stata necessariamente utilizzata la libreria \textbf{ABC (Abstract Base Classes)} di Python\footnote{Python non supporta le classi astratte a livello di linguaggio.}. Questa libreria consente di definire classi base astratte e metodi astratti, fornendo un modo per garantire che le sottoclassi implementino determinati metodi, mantenendo così una struttura coerente nell'ORM.
+
+\subsection{Deserializzazione}
+
+\subsection{Serializzazione}
