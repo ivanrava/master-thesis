@@ -82,5 +82,90 @@ Inoltre, la classe \texttt{Model} implementa anche il \emph{magic method} \textt
 Per gestire la definizione di classi e metodi astratti, è stata necessariamente utilizzata la libreria \textbf{ABC (Abstract Base Classes)} di Python\footnote{Python non supporta le classi astratte a livello di linguaggio.}. Questa libreria consente di definire classi base astratte e metodi astratti, fornendo un modo per garantire che le sottoclassi implementino determinati metodi, mantenendo così una struttura coerente nell'ORM.
 
 \subsection{Deserializzazione}
+Il processo di deserializzazione da XML a oggetto Python inizia quando i costruttori delle classi modello ricevono un'istanza del documento XML in memoria, che, come già detto poco sopra, viene decomposto in attributi d'istanza del nuovo oggetto, convertendo i valori estratti in una rappresentazione nativa di Python.
+
+I valori ovviamente necessitano di \emph{casting}, siccome la rappresentazione XML è puramente testuale, ma anche di una gestione del valor nullo e dell'assenza di valore. È comune infatti che alcuni valori siano del tutto assenti nel documento XML. In questi casi, si considera il tipo di riferimento come \emph{nullable}, utilizzando un tipo unione con il \texttt{None} di Python. Questo approccio consente di gestire in modo efficace i dati incompleti, dichiarando nell'interfaccia il rischio di inconsistenza, similarmente all'approccio usato da linguaggi come TypeScript o Kotlin. Questo viene fatto mediante le \texttt{type hint}, largamente usate in questo progetto. Questo non solo aiuta a mediare la natura dinamica di Python, ma fornisce anche un supporto migliore per le funzionalità di autocomplete negli IDE.
+
+In generale, le classi concrete che rappresentano i modelli sono simili a una \emph{dataclass} di Python, poiché si concentrano principalmente sulla memorizzazione dei dati. Tuttavia, alcune di queste classi esibiscono anche comportamenti più ricchi grazie all'aggiunta di metodi specifici, che permettono di eseguire operazioni più complesse o di interagire con altre entità in modo meno ripetitivo e ridondante.
 
 \subsection{Serializzazione}
+Quando gli oggetti devono essere restituiti nella risposta della API, questi vengono semplicemente restituiti così come sono, senza nessuna particolare operazione. La presenza dei valori negli attributi della classe e lo schema Marshmallow fa sì che il processo di serializzazione sia assolutamente automatico, con lo schema Marshmallow che specifica cosa viene fatto passare della classe e secondo quale formato\footnote{Si noti che lo standard JSON non supporta numeri decimali, che vengono quindi restituiti come stringhe di caratteri. La conversione verrà gestita dal frontend.}.
+
+\section{Quality of Detection}
+Il valore di \textbf{Quality of Detection (QoD)}, come viene chiamato da OpenVAS, è un intero compreso tra 0 e 100 che indica la percentuale di affidabilità del risultato della scansione, dove 100\% indica la certezza. Greenbone OpenVAS consente di usare questo numero per filtrare e comprendere meglio i risultati ottenuti.
+
+Pur essendo un attributo specifico di OpenVAS si è voluto inserire comunque il QoD nell'interfaccia dell'API, anticipando un eventuale parametro generico che identifichi l'affidabilità dei risultati, indipendente dal backend di scansione.
+
+Questo parametro viene fornito all'API in tutte le richieste di risorse con paginazione, che di fatto sono le uniche che possono usare il valore di QoD per filtrare i risultati.
+
+\section{Gestione delle schedule}
+Le schedule sono gestite internamente da OpenVAS come delle stringhe in formato iCalendar, più alcuni metadati usati per la loro identificazione.
+
+\subsection{iCalendar}
+\textbf{iCalendar} è un formato standard per la rappresentazione di informazioni relative a eventi, appuntamenti e attività. È utilizzato per scambiare dati di calendario tra diverse applicazioni e servizi. Il formato è definito nella specifica RFC 5545 e consente di creare file con estensione \texttt{.ics}, che possono contenere dettagli come:
+\begin{itemize}
+    \item Data e ora di inizio e fine di un evento
+    \item Fuso orario
+    \item Descrizione dell'evento
+    \item Luogo
+    \item Informazioni di contatto
+    \item Ripetizioni (per eventi ricorrenti)
+    \item Allerta e promemoria
+\end{itemize}
+Questo formato è utile anche per specificare calendari che possono essere importati o condivisi tramite applicazioni come Outlook, Google Calendar o altre.
+
+Per quanto riguarda il caso in esame, OpenVAS si serve di questo formato esclusivamente per specificare le scansioni che devono essere fatte in accordo con la schedule in oggetto, di fatto limitandosi alle seguenti informazioni:
+\begin{itemize}
+    \item Data e ora di inizio e fine scansione
+    \item Ripetizioni per eventi ricorrenti
+    \item Fuso orario
+\end{itemize}
+
+L'uso di un formato standard ovviamente semplifica lo sviluppo poiché ci si può appoggiare a librerie che automatizzano il processo di parsing e generazione di stringhe aderenti al formato iCalendar. Addirittura la documentazione stessa di \texttt{python-gvm} suggerisce l'uso della libreria \texttt{icalendar} di Python, e così si è fatto nel progetto in esame.
+
+L'uso dello standard iCalendar è tornato utile anche in fase di standardizzazione dell'interfaccia dei dati in uscita, mantenendo il formato delle \texttt{RRULE} di iCalendar per descrivere il tipo di ricorrenza delle schedule.
+
+\section{Autenticazione}
+\subsection{Autenticazione con l'API Flask}
+L'autenticazione degli utenti nell'API Flask è gestita utilizzando \textbf{Flask-Login}, una delle librerie più affidabili e popolari dell'ecosistema Flask. Questa libreria semplifica notevolmente il processo di autenticazione, implementando un sistema basato su cookie per gestire le sessioni degli utenti.
+
+Flask-Login automatizza gran parte delle operazioni di login e logout, fornendo metodi semplici e intuitivi per eseguire queste funzioni quando necessario. Inoltre, la libreria offre un decoratore \texttt{@login\_required}, che consente di proteggere immediatamente e facilmente qualsiasi metodo-vista di Flask, garantendo che solo gli utenti autenticati possano accedervi.
+
+Un aspetto fondamentale di Flask-Login è la necessità di fornire un metodo che restituisca l'oggetto utente corrispondente a un identificativo specifico. Questo metodo deve restituire l'oggetto utente se l'identificativo è valido, oppure None se non lo è. L'identificativo utilizzato è a discrezione del programmatore, così come la classe utente, purché vi sia coerenza interna nel sistema.
+
+Nel contesto di questo progetto, è stato scelto di utilizzare l'ID dell'utente fornito dall'API GMP come identificativo. Questo ID è un UUID, in linea con il formato utilizzato per tutte le altre risorse interne al sistema GVM. Per rappresentare l'utente, è stata utilizzata la classe di modello che corrisponde alla risorsa utente di GMP, garantendo così una gestione coerente e integrata delle informazioni relative agli utenti.
+
+\subsection{Autenticazione con l'API GMP}
+L'autenticazione dell'applicazione Flask con l'API sottostante di GMP ha rappresentato invece una sfida complessa e delicata, come quasi tutti i casi in cui un'applicazione deve interagire in modo sicuro con un sistema di terze parti che non è ben configurato in tal senso (ad esempio, supportando OAuth).
+
+Segue un'analisi delle problematiche riscontrate e dell'analisi effettuata di varie soluzioni applicative prima di giungere alla soluzione che è stata effettivamente adottata nel progetto.
+
+\subsubsection{Requisiti}
+Innanzitutto, si vuole che la sessione dell'utente loggato mantenga una connessione con l'API di GMP in background. Ma questo non è un compito banale. Le connessioni HTTP sono, per loro natura, \emph{stateless}, mentre l'API di GMP opera su una socket UNIX, che è intrinsecamente \emph{stateful} rispetto alle richieste HTTP in arrivo.
+
+La connessione con l'API di GMP viene stabilita aprendo una socket UNIX e fornendo immediatamente le credenziali dell'utente, ovvero nome utente e password. Questo approccio consente di eseguire tutte le operazioni successive con i privilegi dell'utente autenticato.
+
+\subsubsection{Pooling di connessioni}
+Una possibilità può essere mantenere viva questa connessione in memoria tra le chiamate HTTP; ma questo è problematico, poiché i server web operano in modalità di parallelismo. Ad esempio, Gunicorn, il server web utilizzato per il deployment, gestisce le richieste in ingresso creando una serie di processi \emph{worker}, i quali non condividono la memoria RAM. Di conseguenza, mantenere le connessioni alla socket in memoria porterebbe a errori di tipo \emph{time-dependent}: una richiesta potrebbe avere successo solo se viene gestita da quel particolare \emph{worker} che ha tenuto in memoria la connessione, altrimenti fallirebbe.
+
+\subsubsection{Multiprocessing / multithreading}
+Sebbene Gunicorn consenta di precaricare un pezzo di codice e di fare il \emph{fork} dei processi worker successivamente, questo approccio garantisce solo che il pool di connessioni parta dallo stesso stato iniziale, senza assicurare coerenza nelle operazioni successive. Un'alternativa sarebbe implementare soluzioni di multiprocessing o multithreading. Tuttavia, il multiprocessing richiede lo scambio di messaggi e strutture dati tra processi, e le connessioni a socket UNIX non sono facilmente serializzabili con nessuna delle strategie di \emph{marshalling} comuni nell'ecosistema Python.
+
+D'altra parte, il multithreading richiederebbe di configurare i worker di Gunicorn con GEvent, trasformando il server web in un singolo processo con più thread. Questo approccio, però, introduce la necessità di gestire sezioni critiche (per la gestione del pool delle connessioni) e meccanismi di sincronizzazione, come i semafori, di fatto compromettendo le performance. Tuttavia, ciò comporta un ulteriore problema: una singola connessione UNIX non può essere "multiplexata" e può rispondere a un solo comando alla volta. Anche con l'implementazione di sezioni critiche e semafori, le richieste simultanee sarebbero ingestibili.
+
+\subsubsection{Gestione delle credenziali di terze parti}
+In sintesi, l'unica soluzione praticabile per evitare di richiedere all'utente di inserire nome utente e password ad ogni chiamata API (un approccio di fatto estremamente scomodo e impraticabile) è quella di memorizzare in RAM il nome utente e, purtroppo, la password. Questo consente di ricreare le connessioni con la socket UNIX per ogni chiamata, garantendo la massima performance e soprattutto, scongiurando problemi di consistenza dei dati o dipendenze dalla rete, che sarebbero altresì inevitabili.
+
+Questo approccio, per quanto sub-ottimo dal punto di vista delle buone pratiche di security, come si è visto è di fatto necessario per realizzare il sistema in oggetto.
+
+Per mitigare il più possibile questa soluzione si sono introdotti tutta una serie di accorgimenti:
+\begin{itemize}
+    \item Le credenziali di terze parti sono salvate in sessione, ma rese \emph{server-side} rispetto al default \emph{client-side} di Flask.
+    \item Le sessioni \emph{server-side} sono salvate in un'istanza di Redis, resa accessibile solo dalla rete interna di Docker Compose ed è pertanto inaccessibile da al di fuori della macchina. Internamente alla macchina invece è necessario disporre dei permessi di \texttt{root} per accedervi.
+    \item Un'istanza di \textbf{Fernet} è generata e condivisa tra tutti i processi mediante il precaricamento di Gunicorn, efficace in questo caso visto che l'istanza non cambia nel tempo. Fernet è un sistema di crittografia simmetrica che fa parte della libreria di crittografia \texttt{cryptography} in Python, e di fatto implementa AES in modalità CBC.
+    
+    Grazie a Fernet le password sono crittografate prima di essere salvate su Redis. Chiaramente è meno sicuro di un hash, ma le hash impediscono il recupero della password che in questo caso è purtroppo necessario.
+    \item La password usata da AES è generata casualmente al momento della creazione del server Gunicorn e non è mai salvata su disco o stampata a schermo, di fatto rimanendo solo nella RAM della macchina. Questo significa che ad ogni riavvio del server la password è scelta di nuovo e sessioni esistenti diventano invalidate.
+\end{itemize}
+
+\section{Quota di scansione}
