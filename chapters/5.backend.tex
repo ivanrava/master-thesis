@@ -152,7 +152,7 @@ Un aspetto fondamentale di Flask-Login è la necessità di fornire un metodo che
 
 Nel contesto di questo progetto, è stato scelto di utilizzare l'ID dell'utente fornito dall'API GMP come identificativo. Questo ID è un UUID, in linea con il formato utilizzato per tutte le altre risorse interne al sistema GVM. Per rappresentare l'utente, è stata utilizzata la classe di modello che corrisponde alla risorsa utente di GMP, garantendo così una gestione coerente e integrata delle informazioni relative agli utenti.
 
-\subsection{Autenticazione con l'API GMP}
+\subsection{Autenticazione con l'API GMP - Progettazione}
 L'autenticazione dell'applicazione Flask con l'API sottostante di GMP ha rappresentato invece una sfida complessa e delicata, come quasi tutti i casi in cui un'applicazione deve interagire in modo sicuro con un sistema di terze parti che non è ben configurato in tal senso (ad esempio, supportando OAuth).
 
 Segue un'analisi delle problematiche riscontrate e dell'analisi effettuata di varie soluzioni applicative prima di giungere alla soluzione che è stata effettivamente adottata nel progetto.
@@ -184,5 +184,16 @@ Per mitigare il più possibile questa soluzione si sono introdotti tutta una ser
     Grazie a Fernet le password sono crittografate prima di essere salvate su Redis. Chiaramente è meno sicuro di un hash, ma le hash impediscono il recupero della password che in questo caso è purtroppo necessario.
     \item La password usata da AES è generata casualmente al momento della creazione del server Gunicorn e non è mai salvata su disco o stampata a schermo, di fatto rimanendo solo nella RAM della macchina. Questo significa che ad ogni riavvio del server la password è scelta di nuovo e sessioni esistenti diventano invalidate.
 \end{itemize}
+
+\subsection{Proxying dell'API GMP}
+Flask supporta l'uso di un oggetto ``globale'' per tutta la durata della richiesta web, chiamato semplicemente \texttt{g}. Questo oggetto è usato per riferirsi alla connessione con l'API GMP (in un'applicazione web maggiormente classica conterrebbe probabilmente un riferimento alla connessione con il database SQL), usando un metodo \texttt{get\_gmp()}che di fatto implementa un design pattern di tipo \emph{Proxy}.
+
+Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza di GMP è già presente, ovvero, se la connessione è stata già stabilita:
+\begin{itemize}
+    \item Se sì, ritorna la connessione già stabilita.
+    \item In caso contrario è necessario stabilire una nuova connessione. La libreria \texttt{python-gvm} è usata per connettersi alla socket UNIX. Quindi, vengono reperite dalla sessione Redis le credenziali dell'utente, decriptate e infine usate per autenticare la connessione.
+\end{itemize}
+
+Infine, quando il flusso di richiesta / risposta web si conclude l'istanza Flask chiude la connessione manualmente, siccome (come già detto precedentemente) non è possibile fare \emph{pooling} di queste connessioni per ottimizzare le risorse del server.
 
 \section{Quota di scansione}
