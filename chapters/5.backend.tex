@@ -197,3 +197,17 @@ Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza 
 Infine, quando il flusso di richiesta / risposta web si conclude l'istanza Flask chiude la connessione manualmente, siccome (come già detto precedentemente) non è possibile fare \emph{pooling} di queste connessioni per ottimizzare le risorse del server.
 
 \section{Quota di scansione}
+
+\section{Utilità di testing}
+Durante lo sviluppo è stato necessario interagire più volte con l'API GMP per verificare le risposte restituite e testare interattivamente il parsing XML.
+
+Per velocizzare quest'operazione è stata aggiunta direttamente nell'applicazione  un'utilità di testing grazie al framework \textbf{Click}, già integrato con ogni installazione di Flask.
+
+Click è un framework di controllo della riga di comando che consente di creare applicazioni CLI robuste e flessibili. In relazione a Flask, Click è spesso utilizzato per creare comandi CLI personalizzati per le applicazioni Flask, come in questo caso.
+Flask fornisce un'integrazione nativa con Click, che consente di creare comandi CLI per eseguire azioni specifiche all'interno dell'applicazione Flask. Ad esempio, è possibile utilizzare Click per creare comandi per inizializzare il database, eseguire test, avviare server di sviluppo, ecc.
+
+In questo caso è stato aggiunto un comando Click (chiamato semplicemente \texttt{gmp}) che una volta invocato dalla linea di comando ci inserisce in una sessione dell'interprete interattivo Python creata appositamente per noi. In questa sessione sono inserite tutte le variabili locali allo \emph{scope} dell'invocazione dell'interprete Python, così da avere a disposizione tutti gli strumenti necessari per testare l'API GMP direttamente dall'interfaccia della libreria di Greenbone:
+\begin{itemize}
+    \item Una connessione già stabilita e autenticata (se le credenziali sono fornite) con GMP.
+    \item Una funzione\footnote{Python consente di definire funzioni locali ad altre funzioni. In questo modo la funzione è disponibile solo nel contesto interattivo creato da Click.} \texttt{pp()} per la stampa a schermo formattata dei documenti XML restituiti dalla API.
+\end{itemize}
