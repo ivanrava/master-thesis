@@ -14,7 +14,7 @@ Il file \texttt{requirements.txt} è un formato standard per elencare le dipende
 \section{Controllo di versione}
 Tutto il codice è stato manutenuto sotto \textbf{Git} come sistema di controllo versione (VCS: Version Control System). Git e altri strumenti simili sono fondamentali per la gestione del codice sorgente, poiché consentono agli sviluppatori di tenere traccia delle modifiche apportate al progetto nel tempo, ed eventualmente di annullarle, navigando tra le varie versioni del codice.
 
-\section{Struttura dei package}
+\section{Architettura dei package e del codice}
 L'organizzazione del progetto Flask è stata adattata alle specifiche esigenze della REST API in questione, ottimizzando la struttura per garantire chiarezza e manutenibilità, rimuovendo le parti non necessarie. Per esempio, è stata omessa la cartella \texttt{templates/}, tipicamente utilizzata per i template Jinja nelle applicazioni web tradizionali, poiché non è necessaria in un contesto API, dove l'interazione avviene principalmente attraverso richieste e risposte in formato JSON.
 
 Tutto il codice è stato collocato all'interno di un package Python denominato \texttt{gvmrest}, che rappresenta il nome del progetto. All'interno di questo package principale, sono stati creati tre ulteriori package: \texttt{blueprints}, \texttt{gmp} e \texttt{models}:
@@ -33,6 +33,23 @@ I file \texttt{\_\_init\_\_.py} di alcuni di questi package sono stati utilizzat
     
     In questo modo, il punto di variabilità si concentra esclusivamente nel file \texttt{\_\_init\_\_.py} del package, semplificando la manutenibilità e rendendo più agevole l'aggiunta o la rimozione di blueprint in futuro.
 \end{itemize}
+
+\subsection{Blueprint, REST API e MethodView}
+L'uso di APIFlask implica la necessità di usare i Blueprint forniti dalla libreria, che sono di fatto un \emph{wrapper} attorno ai Blueprint Flask (chiamati \texttt{APIBlueprint}).
+
+Per strutturare ancora di più il codice, si è cercato di fornire un'architettura similare a tutti i Blueprint dedicati a compiti simili. Infatti, quasi tutti i blueprint effettuano le classiche operazioni CRUD\footnote{Create, Read, Update, Delete: ovvero creare una risorsa, leggere una risorsa, aggiornare una risorsa, cancellare una risorsa} con vari gradi di completezza.
+
+Flask mette a disposizione la classe \emph{MethodView} proprio per questo caso. Si tratta di una classe che consente di gestire più metodi HTTP (ad esempio GET, POST, PUT, DELETE) all'interno di una singola classe. Ciò consente di organizzare il codice in modo più pulito e facile da mantenere.
+
+Le MethodView sono utili quando si desidera gestire più azioni su una stessa risorsa in modo semantico (caratteristica chiave delle REST API), ad esempio:
+\begin{itemize}
+    \item Gestire una richiesta GET per recuperare i dati di una risorsa
+    \item Gestire una richiesta POST per creare una nuova risorsa
+    \item Gestire una richiesta PUT per aggiornare una risorsa esistente
+    \item Gestire una richiesta DELETE per eliminare una risorsa
+\end{itemize}
+
+Le MethodView consentono anche di applicare globalmente i decoratori Python, definendoli come attributi d'istanza. Nel caso specifico, le nostre MethodView sono definite con i decoratori di Flask-Login, rendendo tutte le viste automaticamente protette dall'accesso non precedentemente autorizzato. Inoltre, con un ulteriore decoratore proprio di APIFlask è possibile segnalare le viste come protette dall'autenticazione, ottenendo questa informazione durante la generazione automatica della documentazione interattiva.
 
 \subsection{Schemi Marshmallow}
 Dalla scelta di utilizzare il meta-framework di APIFlask deriva anche la scelta obbligata della libreria di gestione degli schemi dei dati: Marshmallow (invece di Pydantic). APIFlask supporta di fatto solo Marshmallow, il che ha reso questa libreria una scelta naturale, anticipata già in \ref{design-marshmallow}.
