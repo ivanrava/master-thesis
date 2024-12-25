@@ -152,7 +152,7 @@ Un aspetto fondamentale di Flask-Login è la necessità di fornire un metodo che
 
 Nel contesto di questo progetto, è stato scelto di utilizzare l'ID dell'utente fornito dall'API GMP come identificativo. Questo ID è un UUID, in linea con il formato utilizzato per tutte le altre risorse interne al sistema GVM. Per rappresentare l'utente, è stata utilizzata la classe di modello che corrisponde alla risorsa utente di GMP, garantendo così una gestione coerente e integrata delle informazioni relative agli utenti.
 
-\subsection{Autenticazione con l'API GMP - Progettazione}
+\subsection{Autenticazione con l'API GMP}
 L'autenticazione dell'applicazione Flask con l'API sottostante di GMP ha rappresentato invece una sfida complessa e delicata, come quasi tutti i casi in cui un'applicazione deve interagire in modo sicuro con un sistema di terze parti che non è ben configurato in tal senso (ad esempio, supportando OAuth).
 
 Segue un'analisi delle problematiche riscontrate e dell'analisi effettuata di varie soluzioni applicative prima di giungere alla soluzione che è stata effettivamente adottata nel progetto.
