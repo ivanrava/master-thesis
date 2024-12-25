@@ -197,6 +197,26 @@ Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza 
 Infine, quando il flusso di richiesta / risposta web si conclude l'istanza Flask chiude la connessione manualmente, siccome (come già detto precedentemente) non è possibile fare \emph{pooling} di queste connessioni per ottimizzare le risorse del server.
 
 \section{Quota di scansione}
+La quota di scansione come detto è stata gestita mediante il sistema di tagging interno a Greenbone. In particolare, ogni utente riceve un tag di nome \texttt{quota:total} con come valore il numero di scansioni massime consentite per ogni mese. Questo tag è specificato al momento della creazione dell'utente da parte dell'utenza di livello superiore.
+
+\section{Multi-tenancy}
+La multi-tenancy è stata gestita usando il sistema dei ruoli nativo di Greenbone:
+\begin{itemize}
+    \item \textbf{1° livello / Super amministratore}: per questo ruolo è stato usato il ruolo di \textbf{Super Admin}, già incluso nel sistema Greenbone. Tale ruolo va necessariamente creato da linea di comando interagendo direttamente con il demone \texttt{gvmd}. Inoltre, l'utente di super amministratore è impostata come proprietario degli oggetti reperiti dal \emph{feed} di Greenbone.
+
+    Ci può essere un solo utente sotto questo ruolo, che di fatto può fare e vedere ogni cosa rispetto ad ogni entità del sistema.
+    \item \textbf{2° livello / Tenant}: per questo ruolo è stato usato il ruolo di \textbf{Admin}, già incluso nel sistema Greenbone.
+
+    Inoltre, serve aggiungere i permessi per la lettura e la modifica\footnote{In questo contesto la modifica dei tag consente l'assegnamento dei tag.} dei tag di quota.
+    \item \textbf{3° livello / Utente finale}: infine, per l'ultimo livello della gerarchia è stato usato un ruolo personalizzato. Infatti, il ruolo \textbf{User} offerto dal sistema di ruoli nativo di Greenbone è insufficiente, non consentendo i permessi di lettura sugli utenti\footnote{In linea di principio questo non sarebbe un problema, siccome un utente finale del sistema non deve avere modo di vedere gli altri utenti. Tuttavia, il permesso è strutturato in maniera tale che l'utente non può nemmeno vedere sé stesso e questo causa problemi in fase di autenticazione e controllo quota di scansione.}. Di conseguenza, è necessario clonare il ruolo e aggiungere manualmente i permessi di \texttt{get\_users}\footnote{Questo di fatto consente solo la lettura della propria utenza, senza necessità di limitare i permessi appena forniti.}.
+
+    Inoltre, serve aggiungere i permessi per la lettura dei tag di quota.
+\end{itemize}
+I ruoli così definiti sono usati dal sistema per mezzo dei loro identificativi UUID, forniti tramite file \texttt{.env}.
+
+Al momento della creazione di un tenant, da parte del super amministratore viene anche creato un gruppo di tenancy denominato sulla base del tenant e in cui il tenant viene automaticamente inserito con permessi di tipo \emph{Super}\footnote{Ovvero, ha la facoltà di fare e vedere ogni cosa. Di fatto lo si rende un Super Admin localmente alle risorse del gruppo.} e \texttt{modify\_group}\footnote{Per aggiungere risorse al gruppo, come gli utenti che lui crea.}.
+    
+Inoltre, tutti gli utenti inseriti nel gruppo possono bypassare i permessi di lettura degli utenti per vedere esclusivamente il proprio tenant. Questo è necessario per determinare il proprio gruppo di tenancy e il permesso viene automaticamente creato dal sistema in fase di creazione degli utenti di minor livello.
 
 \section{Utilità di testing}
 Durante lo sviluppo è stato necessario interagire più volte con l'API GMP per verificare le risposte restituite e testare interattivamente il parsing XML.
