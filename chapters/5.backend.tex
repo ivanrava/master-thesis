@@ -197,7 +197,26 @@ Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza 
 Infine, quando il flusso di richiesta / risposta web si conclude l'istanza Flask chiude la connessione manualmente, siccome (come già detto precedentemente) non è possibile fare \emph{pooling} di queste connessioni per ottimizzare le risorse del server.
 
 \section{Quota di scansione}
+\subsection{Definizione del valore massimo}
 La quota di scansione come detto è stata gestita mediante il sistema di tagging interno a Greenbone. In particolare, ogni utente riceve un tag di nome \texttt{quota:total} con come valore il numero di scansioni massime consentite per ogni mese. Questo tag è specificato al momento della creazione dell'utente da parte dell'utenza di livello superiore.
+
+\subsection{Calcolo della quota consumata}
+La quota consumata è calcolata sommando i contributi di due parti:
+\begin{itemize}
+    \item Le scansioni passate in questo mese, usando i report delle scansioni\footnote{Per tenere sotto controllo l'occupazione del disco i report sono cancellati a rotazione. Ovviamente, il valore di \emph{turnaround} è stato scelto in modo tale da non compromettere la correttezza del precedente calcolo.} per determinare il numero di host coinvolti ogni volta (che non dipende da quanti host fossero attivi o meno al momento della scansione).
+    \item Le scansioni future di questo mese, ovvero quelle pianificate / ricorrenti. Queste sono determinate con l'uso di una libreria Python specializzata, \texttt{recurring\_ical\_events}, che garantisce una gestione facilitata degli eventi ricorrenti definiti con standard iCalendar. Non avendo ancora rapporti, per contare l'impatto della scansione della quota si usa il bersaglio configurato.
+\end{itemize}
+Questa quota è quindi definita come attributo d'istanza dell'utente.
+
+\subsection{Controllo della quota consumata}
+La quota è controllata al momento dell'aggiunta di un task di scansione. In particolare, nel backend è stato definito un endpoint che verifica se il task passato nella richiesta API è accettabile per la quota fornita, oppure no. Per farlo opera in modo diverso a seconda del task specificato:
+\begin{itemize}
+    \item Se il task è configurato per l'esecuzione immediata allora questo è controllato esclusivamente rispetto alla quota disponibile di questo mese.
+    \item Se invece il task è configurato per un esecuzione periodica allora la quota è controllata per ogni mese futuro, fermando i controlli con un'orizzonte temporale di un anno dal momento della creazione.
+\end{itemize}
+In questo modo la quota valida è controllata a monte dell'unica operazione che può intaccarla, così da garantirne sempre la consistenza.
+
+Si noti che di fatto il sistema OpenVAS consente tranquillamente la definizione di un qualsivoglia numero di scansioni, senza rispettare i valori specificati nei tag. L'API wrapper fatta con Flask è quella che impone il controllo a livello applicativo della validità delle operazioni proposte dall'utente.
 
 \section{Multi-tenancy}
 La multi-tenancy è stata gestita usando il sistema dei ruoli nativo di Greenbone:
