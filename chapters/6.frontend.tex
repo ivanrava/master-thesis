@@ -1,0 +1,88 @@
+In cui si spiega nei dettagli lo sviluppo del frontend web facente veci di SPA.
+
+\section{Client API}
+Per questo componente un pezzo chiave è il client API. Nuxt offre diversi pattern, architetture e librerie per lo scopo.
+
+\subsection{Prefisso}
+Il file di configurazione di Nuxt (\texttt{nuxt.config.ts}) consente di definire delle variabili e dei valori che vengono esposti all'intera applicazione.
+Questi valori possono essere sovrascritti sulla base dei singoli ambienti (di sviluppo o produzione) mediante file \texttt{.env} appositi, rispettando lo standard DotEnv.
+In questo modo è possibile definire e personalizzare flessibilmente il prefisso del server che ospita ed espone l'API, senza fissarlo nella \emph{codebase} e rendendolo al contempo facilmente disponibile all'ambiente JavaScript nel browser.
+
+\subsection{Client Fetch}
+Nuxt offre tre diverse modalità per l'ottenimento dei dati remoti, tutti basati sulla libreria \texttt{ofetch}.
+
+Queste diverse tecniche si rendono necessarie a causa della natura del framework Nuxt, che di fatto viene eseguito sia su client che su server. Come conseguenza di ciò, Nuxt esegue di fatto codice JavaScript isomorfo / universale su entrambe le parti. Perciò, richiedere i dati ``semplicemente'', senza ulteriori accorgimenti, darebbe vita a una doppia richiesta, una sul server (per creare l'HTML) e una sul client (quando l'HTML è idratato dal framework Vue). Questo può dare vita a tutta una serie di problemi, ma soprattutto:
+\begin{itemize}
+    \item \textbf{Hydration mismatch}: questo solitamente accade quando le risposte delle due richieste sono differenti, dando vita a un effetto visivo spiacevole in cui la pagina che si vede dal server ha contenuti basati sulla prima risposta, ma in un secondo momento (quando tutto il bundle JavaScript si è caricato) vengono sostituiti da quelli basati sulla seconda risposta.
+    \item \textbf{Performance}: ovviamente, effettuare due volte una stessa richiesta aggiunge inutilmente ritardo ai tempi di caricamento.
+\end{itemize}
+
+Per risolvere questi problemi Nuxt include tecniche ulteriori che gestiscono automaticamente questa particolare situazione di richiesta dati, che in una SPA è una delle attività più frequenti e critiche:
+\begin{itemize}
+    \item \textbf{\$fetch}: si tratta di un semplice alias per la libreria \texttt{ofetch}. Di fatto la funzione agisce come una classica e moderna libreria client HTTP, come ad esempio Axios. Non ha particolari strutture o organizzazioni per Nuxt, di conseguenza è in teoria riservata solo per le interazioni asincrone a pagina caricata (ad esempio: cliccare bottoni, chiedere dati da modali aperti, \emph{polling} di dati a intervalli prestabiliti, ecc.)
+    \item \textbf{useFetch}: si tratta di un \emph{composable} per standardizzare le richieste di dati fatte nella funzione di \texttt{setup}, costruito a partire da \texttt{useAsyncData} e \texttt{\$fetch}.
+    \item \textbf{useAsyncData}: si tratta di un altro \emph{composable} che è responsabile per eseguire qualunque tipo di logica asincrona, non solo di richiesta dati da un server. Di fatto \texttt{useFetch} è un caso specifico di \texttt{useAsyncData}, cioè quello più comune, e fornisce semplice zucchero sintattico per questo scopo.
+\end{itemize}
+
+Nel nostro caso particolare la libreria di fetch di fatto si interfaccerà sempre e solo con un'API, di conseguenza ha senso cercare un modo di evitare inutili ripetizioni dell'URL del backend, centralizzandone la definizione. Il modo più facile ed elegante è utilizzare le funzionalità dedicate di \texttt{ofetch} per creare un ulteriore client che include tutte le opzioni specifiche per l'API, evitando di doverle specificare ogni volta.
+
+Il client così creato dovrà essere reso disponibile in ogni parte del codice. Di conseguenza, la definizione del nuovo client è fatta in un \emph{plugin} Nuxt, ovvero un file TypeScript che definisce codice esposto dovunque nell'applicazione attraverso l'istanza di Nuxt.
+
+\subsection{Token CSRF}
+Come anticipato, si è introdotto un ulteriore livello di protezione mediante token CSRF, che deve essere recuperato al momento del caricamento della pagina e quindi incluso per ogni richiesta del client.
+
+In pratica questo avviene facendo una richiesta nel \emph{plugin} definito come sopra. Questo si traduce in una chiamata singola fatta al momento del caricamento della pagina web, quando il bundle di codice JavaScript è caricato per la prima e unica volta. La richiesta va a toccare un endpoint specifico dell'API REST che restituisce il token CSRF sia come corpo che come header. Il token è quindi recuperato e incluso in ogni richiesta seguente semplicemente ponendolo come ulteriore pre-impostazione del client personalizzato per l'API GVM.
+
+\subsection{Componente Suspense}
+Nuxt internamente usa il componente \texttt{<Suspense>} di Vue per ritardare la navigazione fino a che ogni richiesta asincrona non sia completata, evitando la resa bizzarra e improvvisa dei dati.
+
+Questa funzionalità è di per sé attivata, ma può essere disattivata a seconda delle esigenze e anche su specifiche rotte di navigazione. Nel caso in esame si è preferito tenere attiva la funzionalità, non essendoci richieste troppo lente.
+
+\subsection{Barra di caricamento}
+In aggiunta, Nuxt fornisce un componente che renderizza automaticamente una barra di caricamento per il cambio vista e le navigazioni tra pagine, intercettando le richieste fatte con le proprie librerie.
+
+Siccome il client in questo progetto è creato da zero usando direttamente \texttt{ofetch} allora segue che è necessario reintrodurre questo comportamento, agganciandosi ai \emph{callback} esposti dall'istanza \texttt{ofetch}. Nuxt offre anche un composable \texttt{useLoadingIndicator}, di fatto usato per fornire la barra di caricamento in modalità \emph{headless}. Nel nostro caso ci limiteremo a usarlo per governare la barra di caricamento sulla base dello stato delle richieste (semplicemente si avvia e termina assieme alla richiesta).
+
+\section{Autenticazione}
+Come detto precedentemente, l'autenticazione è gestita mediante cookie di sessione, ma ci sono comunque alcuni accorgimenti architetturali di cui tenere conto.
+
+\subsection{Composable di autenticazione}
+La parte di autenticazione è particolarmente delicata e non banale da realizzare nel caso di una SPA, di conseguenza si è deciso per la creazione di un \emph{composable} dedicato allo scopo, chiamato \texttt{useAuth}.
+
+Il componente espone di fatto tre funzionalità: tentare il login con delle credenziali date, effettuare il logout, recuperare l'utente attualmente connesso.
+
+Questo composable è sfruttato anche nel client dell'API: se una qualunque richiesta ritorna uno stato interpretabile come un utente non autenticato nel sistema, cioè un codice 401, allora il client pulisce la sessione con un logout e ritorna alla schermata di login, di fatto rendendo il client reattivo ad eventuali cambiamenti improvvisi nel client o nel server.
+
+\subsection{SSR e middleware}
+Nuxt offre due diverse modalità di rendering:
+\begin{itemize}
+    \item 
+\end{itemize}
+
+...
+
+Il middleware inoltre impedisce all'utente di andare su rotte non consentite o non pensate per il suo stato di autenticazione (un utente autenticato non può andare alla schermata di login e uno non autenticato non può andare dove il login non è concesso, cioè ogni altra rotta dell'applicazione).
+
+\section{Pagine e layout}
+
+\subsection{Layout}
+auth e default...
+
+\subsection{Pagine}
+Struttura delle pagine...
+
+
+\section{Store per QoD}
+
+\section{Tipi TypeScript}
+
+\section{Componenti Vue}
+Struttura Nuxt con convenzioni e auto-import
+\subsection{Tabelle}
+\subsection{Renderer}
+\subsubsection{Iconify e CPE}
+\subsection{Modali}
+\subsection{Form e validazione}
+Vee-validate...
+\subsubsection{Select e option}
+\subsection{Avatar utenti}
