@@ -64,25 +64,126 @@ Nuxt offre due diverse modalità di rendering:
 Il middleware inoltre impedisce all'utente di andare su rotte non consentite o non pensate per il suo stato di autenticazione (un utente autenticato non può andare alla schermata di login e uno non autenticato non può andare dove il login non è concesso, cioè ogni altra rotta dell'applicazione).
 
 \section{Pagine e layout}
+Nuxt dispone di un proprio sistema di \emph{templating} per le pagine web. Qui segue come si è strutturata l'applicazione all'interno di queste funzionalità.
 
 \subsection{Layout}
-auth e default...
+I file di layout sono utilizzati per definire lo scheletro comune a tutte le pagine web dell'applicazione o a un loro sottoinsieme. In questa applicazione, di fatto una dashboard, si è fatto uso di due layout:
+\begin{itemize}
+    \item Un layout generico applicato a tutte le pagine web.
+    \item Uno specifico per la pagina di login e solo per quella.
+\end{itemize}
+Da questa organizzazione si deduce facilmente che in buona sostanza l'intera applicazione può essere consultata / usata solo se precedentemente autenticati.
 
 \subsection{Pagine}
-Struttura delle pagine...
-
+Le singole pagine sono invece strutturate secondo il \emph{file-based routing} di Nuxt. In particolare, queste sono le principali pagine / rotte previste:
+\begin{itemize}
+    \item Login dell'utente.
+    \item Homepage della dashboard, di fatto spoglia e priva di funzionalità particolari.
+    \item Vista degli utenti. Nascosta a chiunque non abbia facoltà di gestione degli utenti. Permette di gestire utenti (cancellare, creare, ecc.)
+    \item Vista delle task di scansione. Permette di creare task, verificare il progresso e l'esecuzione di quelli già configurati.
+    \item Vista dei bersagli, da cui si possono vedere quelli già configurati e configurarne di nuovi.
+    \item Viste dei risultati. Ne esistono di differenti per distinguere tra vulnerabilità vere e proprie e quelle ottenute tramite scansioni di prognosi \ref{cve}. Le viste integrano un sistema di filtraggio più avanzato e integrato rispetto alle altre strutture tabellari, siccome si presume che questa vista sarà quella su cui l'utente vorrà fare maggiori analisi.
+    \item Viste dei rapporti. Di fatto fornisce un consuntivo dei risultati trovati e fornisce collegamenti ai risultati correlati e agli host determinati dalla scansione.
+    \item Vista degli host. Raccoglie e visualizza degli host, con tutti i dettagli trovati organizzati nel modo più chiaro possibile.
+\end{itemize}
 
 \section{Store per QoD}
+Come già detto, OpenVAS integra una stima empirica dell'affidabilità dei risultati raccolti, detta QoD. L'API realizzata espone questo parametro nelle richieste e fornendolo i risultati vengono automaticamente filtrati e restituiti solo quelli con QoD superiore al numero fornito.
+
+Nell'interfaccia web si è deciso per avere un selettore di QoD globale, attivabile in ogni momento e la cui modifica influisce i risultati mostrati nelle pagine web. Questo si è realizzato nel concreto mediante un input range HTML, il cui valore è stato collegato tramite v-model ad una variabile di uno store Pinia.
+
+Lo store Pinia consente di bypassare la struttura gerarchica dei componenti e di condividere globalmente la variabile del QoD ad ogni componente che ne ha bisogno.
 
 \section{Tipi TypeScript}
+Nuxt è un framework profondamente radicato in TypeScript, per fornire type safety e altri controlli.
+
+I tipi sono definiti in file \texttt{.d.ts}, in accordo con le convenzioni TypeScript. Di fatto sono quasi tutte interfacce TypeScript che replicano la struttura dei tipi già specificata negli schemi Marshmallow del backend.
 
 \section{Componenti Vue}
-Struttura Nuxt con convenzioni e auto-import
+Nuxt memorizza i componenti in una cartella \texttt{components/} gestita secondo convenzioni. In particolare, il nome delle cartelle induce automaticamente la struttura usata per effettuare import automatici dei componenti all'interno delle pagine, dei layout e di tutti gli altri componenti Vue.
+
+Segue una spiegazione dei componenti più importanti e/o peculiari.
+
 \subsection{Tabelle}
+I componenti più importanti sono sicuramente le tabelle che organizzano e mostrano le entità. E fra questi, quello più importante è il componente generico su cui tutte le altre si basano.
+
+\subsubsection{Razionale}
+Di fatto il componente generico agisce come una sorta di tabella \emph{headless} che può essere configurata a seconda del caso specifico.
+
+In questo modo si è riusciti ad avere una sorta di griglia dei dati similare come concetto a quelle fornite da librerie come Ag-Grid. Tuttavia, l'aver realizzato questo componente in autonomia consente di applicare uno stile specifico per il nostro progetto.
+
+Questo comportamento è molto simile a quello che offrono librerie come Tanstack, che forniscono componenti headless. Tuttavia, dopo un'attenta valutazione si è giunti alla conclusione che integrare librerie così avanzate sarebbe stato troppo lavoro per funzionalità aggiuntive che non si sarebbero mai usate. Inoltre, questo ha consentito di creare un'interfaccia più adatta e specifica per i nostri scopi.
+
+\subsubsection{Funzionalità}
+Il componente così creato offre le seguenti funzionalità:
+\begin{itemize}
+    \item Titolo, icona e altre opzioni di aspetto e contenuto sono completamente personalizzabili dagli attributi.
+    \item Descrizione e azioni della tabella sono configurabili tramite \emph{named slot}. Le azioni di ogni riga sono configurabili tramite \emph{scoped slot}.
+    \item Personalizzazione e scelta dell'entità che gestisce attraverso l'inserimento dell'endpoint responsabile di fornire le entità. Questo può funzionare siccome la REST API agisce in modo standardizzato per tutte le richieste indice.
+    \item Reagisce ai campi di QoD.
+    \item Supporta e gestisce autonomamente una paginazione di tipo server-side usando i dati forniti dal backend.
+    \item Supporta il filtraggio dei dati, se dichiarato possibile dall'interfaccia.
+    \item Supporta l'ordinamento \emph{server-side} delle colonne, se dichiarato possibile dalle definizioni delle colonne.
+    \item \emph{Polling} dei dati ad intervalli regolari, realizzando l'aggiornamento dello stato delle scansioni, dei rapporti, dei risultati, ecc.
+    \item Il componente gestisce in autonomia accorgimenti al frontend per gestire elegantemente gli stati di caricamento.
+    \item Le righe della tabella sono animate con il componente TransitionGroup di Vue.
+    \item Può mostrare un bottone il cui evento apre un modale. Il modale ha contenuto personalizzabile attraverso un Component Vue.
+\end{itemize}
+
+\subsubsection{Realizzazione}
+Per realizzare il componente si sono usate varie feature di Vue e eventuali librerie aggiuntive.
+
+La maggior parte delle opzioni del componente sono specificabili usando il meccanismo degli attributi / props, soprattutto booleani e stringhe, ma in alcuni casi anche oggetti JavaScript più strutturati:
+\begin{itemize}
+    \item Il componente incluso nel modale apribile dall'apposito bottone di aggiunta è specificabile tramite un Component. Siccome Nuxt usa un meccanismo di import automatico è necessario importare manualmente il componente, usando la macro \texttt{\#components} messa a disposizione da Nuxt apposta per queste situazioni.
+    \item Le definizioni delle colonne.
+\end{itemize}
+Quest'ultimo punto merita un ulteriore approfondimento. Le definizioni delle colonne sono ciò che specifica le proprietà di ognuna di essa: quale campo considerare nell'oggetto fornito, che tipo di dato è, quale \emph{renderer} usare per mostrare il dato, se la colonna è ordinabile, filtrabile e altre personalizzazioni di stile. Questo approccio è abbastanza simile a quello utilizzato da Tanstack, sebbene più semplice e diretto.
+
+Nel componente si è anche usata una feature di Vue abbastanza recente (3.3) ovvero i \textbf{componenti generici}. Questa funzionalità consente di definire e usare tipi generici nella funzione di \texttt{setup} del componente. Nel caso specifico si è definito un tipo generico per l'entità considerata dalla tabella.
+
 \subsection{Renderer}
-\subsubsection{Iconify e CPE}
+I \emph{renderer} altro non sono che un insieme di componenti dedicati a prendere un dato semplice (una stringa di caratteri, un booleano, un intero, un decimale) o strutturato (un oggetto JSON o un'array di oggetti o variabili) per poi mostrarlo all'utente in una forma \emph{user-friendly} e stilisticamente accattivante.
+
+Nel progetto ci sono quasi 40 renderer differenti e/o innestati l'uno nell'altro, di fatto diventando una sorta di ``design pattern'' di progetto. L'uso di questo sistema porta diversi benefici:
+\begin{itemize}
+    \item Siccome il progetto usa un framework CSS \emph{utility-first} il segregare lo stile il più possibile in componenti atomici garantisce manutenibilità e riproducibilità.
+    \item Similarmente, tanti componenti granulari garantiscono un facile riuso e quindi facile manutenibilità e ridondanza ridotta al minimo.
+    \item Renderizzare anche il dato ``semplicemente'' senza ulteriori personalizzazioni fornisce un comodo livello di indirezione per aggiungere ulteriori personalizzazioni in futuro.
+    \item Inoltre, renderizzare i dati in questo modo consente di realizzare personalizzazioni più avanzate che semplici modifiche stilistiche, permettendo di integrare del comportamento (apertura di modali, \emph{tooltip}, link a pagine web, ecc.)
+\end{itemize}
+
+\subsubsection{CPE}
+Un renderer particolarmente interessante è quello usato per i CPE. OpenVAS infatti utilizza stringhe che rispettano il formato CPE per specificare gli \emph{asset} inventariati dalle scansioni (host e OS), ma anche l'ambiente in cui una vulnerabilità è stata rilevata.
+
+Per rendere la consultazione dei risultati il più possibile veloce si è deciso di mostrare i CPE corredandoli di icone. Queste sono determinate a partire dai \emph{vendor} (o dai \emph{product}) specificati nella stringa CPE.
+
+\subsubsection{Iconify}
+Molti dei renderer sfruttano le icone SVG per facilitare la visualizzazione dei dati a colpo d'occhio.
+
+Le icone sono fornite dalla libreria \textbf{Iconify} che porta in dote decine di migliaia di icone raccolte dai principali pacchetti disponibili online; queste sono poi richieste \emph{on demand} da un componente apposito (Iconify mette a disposizione un comodo wrapper per Vue).
+
 \subsection{Modali}
-\subsection{Form e validazione}
-Vee-validate...
+I modali sono definiti tutti a partire da un componente comune, che ne fornisce le funzionalità di base. Il contenuto è personalizzabile con lo slot di default.
+
+La caratteristica fondante di un modale è che questo in un certo senso esce dalla gerarchia del documento HTML. Questo è realizzato anche in pratica con il componente Teleport di Vue, che trasferisce il componente sotto il tag body.
+
+L'apparizione del modale è animata con il componente Transition.
+
+\subsection{Form}
+Le form sono un altro pezzo essenziale dell'applicazione. Come in ogni progetto, la parte fondamentale e più critica di queste componenti riguarda l'inserimento e la validazione dei dati, che dev'essere il più possibile semplice e intuitivo.
+
+\subsubsection{Validazione}
+Per quanto riguarda la validazione ci si è integrati con Vee-Validate, una delle più popolari librerie di validazione \emph{client-side}. Trattandosi di validazione client-side si è badato soprattutto a fornire un \emph{feedback} veloce e informativo per l'utente. Infatti, tutti i dati sono comunque validati \emph{server-side} tramite gli schemi Marshmallow.
+
 \subsubsection{Select e option}
-\subsection{Avatar utenti}
+Per rendere l'input dei dati il più facile possibile si è fatto largo uso del paradigma di input fornito dai tag HTML di select, ovvero i menu a discesa. In questo modo la validazione dei dati è semplificata, ma anche l'esperienza utente, che ha a disposizione un piccolo insieme di opzioni ben chiare tra cui scegliere.
+
+Tuttavia, il componente nativo di select è piuttosto limitato:
+\begin{itemize}
+    \item Le opzioni permettono di avere solo testo semplice, con pochissime personalizzazioni consentite.
+    \item Non esiste una possibilità di filtraggio.
+\end{itemize}
+Per ovviare a queste limitazioni si è fatto larghissimo uso di \texttt{vue-multiselect}, una comodissima libreria che fornisce un componente di selezione accessibile e molto personalizzabile, sia come aspetto che come comportamento.
+
+Per ogni componente di selezione si è sfruttata questa libreria, realizzando inoltre dei componenti dedicati per il \emph{rendering} di ogni singola opzione. In questo modo, ogni componente di selezione è personalizzato appositamente per lo scopo, con icone e descrizioni, rendendo l'input dei dati particolarmente veloce e semplice.
