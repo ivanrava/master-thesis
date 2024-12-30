@@ -1,0 +1,27 @@
+In cui si spiega brevemente il processo di installazione del software su di un server di produzione.
+
+\section{Struttura}
+Il sistema così realizzato finora consta di due componenti:
+\begin{itemize}
+    \item \textbf{SPA / frontend applicativo}: interagisce con il backend tramite protocollo HTTP.
+    \item \textbf{REST API / backend applicativo}: risponde alle richieste del frontend attraverso l'interfacciamento con la socket UNIX del sistema Greenbone.
+\end{itemize}
+Dall'ultimo punto segue che la REST API e l'istanza del sistema Greenbone devono trovarsi necessariamente sullo stesso server. In alternativa, almeno il demone GVM deve essere presente sullo stesso server.
+
+La SPA di frontend tuttavia può trovarsi anche su di un server differente e interagire con l'API del backend Flask tramite protocollo HTTP. Questo può aprire interessanti possibilità di ottimizzazione se si vuole usare delle CDN o altri strumenti di edge computing.
+
+Nel nostro caso specifico tuttavia entrambi i componenti sono stati installati sullo stesso server, per pura semplicità.
+
+\section{Containerizzazione}
+L'installazione delle componenti e la loro integrazione con il sistema Greenbone sono state entrambe realizzate attraverso Docker (e più nello specifico, Docker Compose).
+
+Infatti, come già detto in \ref{greenbone-community-containers}, Greenbone mette a disposizione un'installazione ufficiale e supportata dell'intero framework attraverso la piattaforma di Docker Compose. Per un ambiente di produzione questa strategia garantisce riproducibilità e affidabilità, ma anche un aggiornamento in generale estremamente semplice, per il quale basta distruggere i container esistenti, aggiornare le immagini di Docker e ricreare i container.
+
+Questo di fatto guida il processo di installazione verso una strategia semplice, ma efficace: dockerizzare entrambe le componenti realizzate per questo progetto (frontend e backend) e interconnetterle in Docker Compose tramite due container appositi.
+
+\subsection{Dockerizzazione - Backend}
+Il backend è stato dockerizzato secondo il seguente procedimento, seguendo a grandi linee il \texttt{Dockerfile}:
+
+\subsection{Dockerizzazione - Frontend}
+
+\subsection{Interconnessione in Docker Compose}
