@@ -1,73 +1,78 @@
+In cui si descrive a grandi linee il problema affrontato nel seguito.
+
 \section{Contesto}
-Oggigiorno l'informatica e le reti di telecomunicazione sono diventate delle parti integranti e pervasive nelle nostre vite. Senza che ce ne accorgiamo, dispositivi di ogni genere e reti di ogni dimensione sono arrivati a diventare parte integrante del quotidiano.
+L'informatica e le reti di telecomunicazione sono oggi componenti fondamentali e pervasive delle nostre vite quotidiane. Dispositivi di ogni genere e reti di ogni dimensione sono diventati parte integrante della nostra quotidianità, spesso senza che ce ne rendiamo conto.
 
-Per questo motivo, garantire la loro sicurezza diventa ogni giorno sempre più importante. Infatti, ogni singolo nodo di rete, anche quello più insignificante, nelle mani del giusto attaccante può diventare inestimabile sia in sé che come eventuale testa di ponte per un attacco più esteso e massiccio.
+In questo scenario, garantire la sicurezza di tali infrastrutture assume un'importanza crescente. Ogni nodo di rete, anche il più apparentemente insignificante, può rappresentare un valore strategico nelle mani di un attaccante esperto, sia come obiettivo diretto sia come punto di ingresso per attacchi più estesi.
 
-Tutti questi rischi valgono per chiunque disponga di servizi esposti in rete, indipendentemente dalla loro popolarità. Infatti, la rete è oramai periodicamente scandita metodicamente da attaccanti che cercano con strumenti automatici qualunque tipo di servizio dotato di vulnerabilità note, così da assicurarsi un facile bottino. Inutile dire che la necessità di un controllo di sicurezza possa diventare solamente ancora più critica per grandi aziende ed entità maggiormente esposte in rete.
+Questi rischi interessano chiunque disponga di servizi esposti in rete, indipendentemente dalla loro popolarità. La rete è periodicamente scandagliata da attaccanti che utilizzano strumenti automatizzati per individuare servizi con vulnerabilità note, cercando di sfruttarle per ottenere un vantaggio immediato. La necessità di verificare regolarmente la sicurezza delle proprie risorse è ancor più critica per grandi aziende e organizzazioni altamente esposte.
 
-Per tutti questi motivi è buona norma verificare regolarmente la sicurezza della propria rete e dei propri servizi esposti in Internet.
+Per queste ragioni, effettuare controlli regolari sulla sicurezza della propria rete e dei servizi esposti su Internet è una pratica essenziale.
 
 \section{Verifica della sicurezza di un nodo di rete}
-La sicurezza dei propri nodi di rete può essere verificata tramite delle procedure genericamente dette di \textbf{vulnerability assessment} (lett. \emph{verifica delle vulnerabilità}). L'obiettivo di queste procedure è:
+La sicurezza dei nodi di rete può essere verificata tramite procedure comunemente note come \textbf{vulnerability assessment} (lett. \emph{valutazione delle vulnerabilità}). L'obiettivo di queste procedure è:
 \begin{itemize}
-    \item Controllare se i servizi visibili dalla rete contengono delle vulnerabilità software.
-    \item Verificare se queste vulnerabilità corrispondono a rischi di sicurezza noti.
-    \item Classificarle e valutarne il grado di rischio, così da indurre una gerarchia di priorità.
+    \item Identificare eventuali vulnerabilità nei servizi visibili dalla rete.
+    \item Verificare se tali vulnerabilità sono associate a rischi di sicurezza noti.
+    \item Classificare e valutare il livello di rischio delle vulnerabilità, stabilendo una gerarchia di priorità per la loro risoluzione e fornendo indicazioni utili agli amministratori di sistema.
 \end{itemize}
 
 \subsection{Strumenti disponibili}
-Esistono molte modalità con cui queste procedure possono essere eseguite, più o meno manuali. Tuttavia, in ambito di produzione e non solo è regolare l'uso di \textbf{vulnerability scanner}, applicativi dedicati allo scopo e che a fronte di una lista di \emph{host} di rete ne verifica la sicurezza, comparando le vulnerabilità riscontrate con dei \emph{database} costantemente aggiornati di vulnerabilità note.
+Esistono molte modalità per eseguire queste procedure, che possono essere più o meno manuali. In ambito produttivo è comune l'uso di \textbf{vulnerability scanner}, applicativi dedicati che analizzano la sicurezza di una lista di \emph{host} di rete, confrontando le vulnerabilità rilevate con \emph{database} costantemente aggiornati.
 
-Esistono molti scanner di questo tipo, a pagamento e non, con vari tipi di licenze, specifiche e requisiti, ma in generale tutti svolgono lo stesso compito: verificare le vulnerabilità reperite in fase di scansione confrontandole con database noti. I principali fattori di differenza sono il costo e le funzionalità ulteriori fornite in assistenza all'utente: reportistica avanzata, suggerimento di soluzioni, correzioni automatiche delle vulnerabilità fornite, verifiche aggiuntive o euristiche, o altro ancora.
+Gli scanner di vulnerabilità possono essere gratuiti o a pagamento, con diverse licenze, caratteristiche e requisiti. Nonostante le differenze, condividono lo stesso compito fondamentale: individuare vulnerabilità e confrontarle con i database noti. Le principali differenze tra questi strumenti riguardano il costo e le funzionalità aggiuntive, come reportistica avanzata, suggerimenti per la mitigazione, correzioni automatiche, analisi euristiche o altre caratteristiche che possono semplificare il lavoro dell'utente.
 
 \section{Casi d'uso}
-Come già detto, la sicurezza della propria presenza in rete dovrebbe essere curata da chiunque, indipendentemente dalle proprie esigenze.
+La sicurezza della propria presenza in rete rappresenta un'esigenza fondamentale per chiunque, indipendentemente dalla specificità dei requisiti.
 
-Tuttavia, l'installazione e la configurazione degli scanner sopracitati spesso è fuori dalle possibilità per la maggior parte dei soggetti interessati, e per svariati motivi:
+Tuttavia, l'installazione e configurazione degli scanner menzionati in precedenza risultano spesso proibitive per la maggior parte degli utenti per diverse ragioni:
 \begin{itemize}
-    \item Mancanza delle risorse economiche necessarie per la licenza dell'applicativo o per l'hardware da dedicargli.
-    \item Mancanza delle competenze necessarie per installarlo e configurarlo.
-    \item Mancanza delle competenze necessarie per interpretare i risultati (ad esempio, per dire quali delle vulnerabilità presentate dal software possono essere ignorate in sicurezza e quali invece richiedano attenzione immediata).
+    \item Mancanza di risorse economiche necessarie per acquistare la licenza dell'applicativo o per sostenere i costi dell'hardware richiesto.
+    \item Insufficienza delle competenze tecniche per installare e configurare correttamente lo scanner.
+    \item Difficoltà nell'interpretare i risultati ottenuti, ad esempio nel distinguere tra vulnerabilità che possono essere ignorate in sicurezza e quelle che richiedono interventi immediati.
 \end{itemize}
 
-Inoltre, verificare la sicurezza degli apparati di rete potrebbe essere essa stessa un'attività a rischio maggiore di zero; infatti, servizi di rete particolarmente obsoleti potrebbero reagire male all'invasività di una scansione di questo tipo, terminando anticipatamente o subendo altri tipi di malfunzionamenti. Pertanto, è in generale buona norma lasciare l'esecuzione di questi strumenti a personale specializzato.
+In questo contesto, per \emph{penetration testing} si intende l'attività di simulazione di attacchi informatici condotta da esperti per identificare vulnerabilità sfruttabili in un sistema, rete o applicazione. A differenza del solo \emph{vulnerability assessment}, che si limita a individuare e classificare le falle di sicurezza tramite strumenti automatici, il \emph{penetration testing} prevede un'analisi più approfondita e manuale, in cui il tester assume il ruolo di un potenziale attaccante.
 
-Per tutte queste ragioni, solitamente privati e aziende si affidano a società specializzate in questo senso. Inoltre, alcuni provider di rete spesso effettuano regolari controlli della sicurezza dei nodi che usufruiscono dei loro servizi.
+In aggiunta, l'esecuzione di una scansione di sicurezza può comportare rischi intrinseci. Alcuni servizi di rete particolarmente obsoleti o configurati in modo inadeguato potrebbero reagire negativamente alla natura invasiva della scansione, causando interruzioni o malfunzionamenti. Per questa ragione, si raccomanda di affidare comunque tali attività a personale qualificato.
 
-Il servizio richiesto in questo caso è spesso chiamato \textbf{VAPT}, ovvero \textbf{Vulnerability Assessment e Penetration Testing}.
-Tale dicitura indica che il servizio comprende sia il ``semplice'' \emph{vulnerability assessment} fatto tramite scanner di sicurezza, che un più pervasivo e personalizzato \emph{penetration testing}.
-
-In questo contesto, per \emph{penetration testing} si intende l'attività di simulazione di attacchi informatici condotta da esperti per identificare vulnerabilità sfruttabili in un sistema, rete o applicazione. A differenza del solo \emph{vulnerability assessment}, che si limita a individuare e classificare le falle di sicurezza tramite strumenti automatici, il \emph{penetration testing} prevede un'analisi più approfondita e manuale, in cui il tester assume il ruolo di un potenziale attaccante\footnote{Ciò detto, a volte alcune aziende per VAPT intendono erroneamente la sola attività di \emph{vulnerability assessment}.}.
-
-Durante il penetration testing, l'esperto esegue una serie di tentativi mirati a violare le difese del sistema, sfruttando falle note, errori di configurazione o debolezze specifiche nel software. Questo processo consente non solo di verificare la presenza di vulnerabilità, ma anche di valutare l'efficacia delle misure di sicurezza implementate e di testare la capacità di risposta dell'organizzazione agli attacchi più impegnati.
-
-I risultati ottenuti vengono poi documentati in un report dettagliato, che include:
+\subsection{Vulnerability Assessment e Penetration Testing}
+Il termine VAPT combina due tipi di attività\footnote{Ciò detto, a volte alcune aziende per VAPT intendono erroneamente la sola attività di \emph{vulnerability assessment}.}:
 \begin{itemize}
-    \item Descrizione delle vulnerabilità identificate e il loro livello di gravità.
+    \item Il \textbf{Vulnerability Assessment}, che consiste nell'utilizzo di scanner automatici per identificare vulnerabilità e associarle a rischi noti.
+    \item Il \textbf{Penetration Testing}, che prevede una simulazione manuale di attacchi condotti da esperti per individuare e sfruttare debolezze nei sistemi. Questo approccio consente di testare non solo la presenza di vulnerabilità, ma anche la capacità di risposta dell'organizzazione a potenziali attacchi.
+\end{itemize}
+
+Durante il \emph{penetration testing}, i tester assumono il ruolo di attaccanti e tentano di sfruttare falle note, errori di configurazione o debolezze specifiche nel software. I risultati di questa attività vengono documentati in un report dettagliato che include:
+\begin{itemize}
+    \item Descrizione delle vulnerabilità riscontrate, con relativa classificazione del rischio.
     \item Dimostrazione degli exploit utilizzati per evidenziare le debolezze.
-    \item Raccomandazioni specifiche per mitigare / eliminare i rischi e migliorare la sicurezza complessiva.
+    \item Raccomandazioni mirate per mitigare i rischi e rafforzare la sicurezza complessiva del sistema.
 \end{itemize}
 
 \section{Il problema}
-A causa dei costi e delle complessità dei sistemi posti oggi in essere, l'uso di questi applicativi è spesso un'attività onerosa per molti soggetti, anche quelli che non dispongono di particolari esigenze di sicurezza. Infatti, spesso e volentieri alcuni soggetti non richiedono avanzati controlli di sicurezza con cadenza settimanale, ma semplici controlli mensili o addirittura \emph{una tantum}.
+Nonostante l'importanza delle attività di VAPT, i costi e le complessità associate ai moderni strumenti di sicurezza le rendono spesso difficili da adottare per molte organizzazioni. In particolare, utenti con esigenze meno stringenti potrebbero necessitare di controlli di sicurezza più semplici, eseguiti con frequenza ridotta (ad esempio, su base mensile o addirittura \emph{una tantum}).
 
-A tal fine, si vuole effettuare un'integrazione con uno scanner di sicurezza esistente, effettivamente fornendo un'altra interfaccia / punto di accesso, possibilmente il più possibile semplificati senza perderne l'efficacia.
+Per rispondere a queste esigenze, l'obiettivo di questo lavoro è integrare uno scanner di sicurezza esistente con un'interfaccia semplificata che ne mantenga l'efficacia, ma che sia accessibile anche per utenti non esperti.
 
-In questa tesi si vuole pertanto discutere approfonditamente l'analisi, la progettazione e lo sviluppo di una soluzione software così specificata.
-Nel seguito si dettaglieranno tutte queste fasi, più l'installazione del sistema così realizzato e un'abbondante trattazione sui futuri sviluppi.
+In questa tesi si analizzano, progettano e sviluppano le soluzioni software necessarie per realizzare tale sistema, includendo:
+\begin{itemize}
+    \item Analisi dei requisiti e progettazione del sistema.
+    \item Sviluppo e implementazione della soluzione proposta.
+    \item Procedure di installazione e configurazione.
+    \item Discussione sui possibili sviluppi futuri e sull'estendibilità del sistema.
+\end{itemize}
 
-L'obiettivo sarà sviluppare non solo un semplice prototipo, ma un prodotto funzionale e già commercialmente utilizzabile nella sua semplicità.
-
-Inoltre, particolare enfasi sarà posta sul procedimento di analisi e progettazione, così da realizzare un prodotto con basi solide e facilmente mantenibile ed estendibile nel futuro con ulteriori funzionalità.
+L'obiettivo finale è produrre non solo un prototipo funzionale, ma un prodotto utilizzabile in contesti reali, caratterizzato da semplicità d'uso, solidità architetturale e flessibilità per integrazioni future.
 
 \section{Terminologia specifica}
-Segue una breve spiegazione di alcuni termini tecnici di sicurezza informatica, di tanto in tanto utilizzati nel prosieguo della trattazione.
+Di seguito vengono definiti alcuni termini tecnici utilizzati nel contesto della sicurezza informatica:
 
 \begin{itemize}
-    \item EOL: con \textbf{End of Life} (o l'acronimo EOL) ci si riferisce alla fine del supporto tecnico e delle patch di sicurezza fornite per un software o un sistema operativo. Quando un prodotto raggiunge la fine della sua vita utile, il produttore non rilascia più aggiornamenti di sicurezza, rendendo il sistema vulnerabile ad attacchi scoperti per tutto questo periodo.
-    \item DoS: il \textbf{Denial of Service} (DoS) è un tipo di attacco informatico che mira a rendere un sistema o un servizio indisponibile agli utenti legittimi. Ciò viene fatto inviando una grande quantità di traffico di rete al sistema, sovraccaricandolo e rendendolo inaccessibile.
-    \item RCE: la \textbf{Remote Code Execution} (RCE) è una vulnerabilità che consente a un attaccante di eseguire codice arbitrario su un sistema remoto senza avere accesso fisico o autorizzato. Ciò può essere fatto inviando un payload malevolo al sistema, che viene eseguito senza controllo. Questa è una delle vulnerabilità più gravi e pericolose per la sicurezza di un sistema.
-    \item \textbf{Privilege Escalation}: è una tecnica di attacco che consente a un utente non autorizzato di acquisire privilegi di accesso più elevati su un sistema. Nel nostro caso, ciò può essere fatto sfruttando vulnerabilità nel sistema.
-    \item \textbf{Buffer Overflow}: è una vulnerabilità che si verifica quando un programma tenta di scrivere più dati in un buffer di memoria di quanto sia stato allocato. Ciò può causare un overflow del buffer, e in alcuni casi questo può portare a consentire all'attaccante di eseguire codice arbitrario sul sistema, effettivamente realizzando una RCE.
-    \item \textbf{Fingerprinting}: il fingerprinting è una tecnica utilizzata per identificare e caratterizzare un sistema informatico, un servizio o un'applicazione, raccogliendo informazioni sulla sua configurazione e sulle sue caratteristiche. Il fingerprinting può essere utilizzato per identificare: il sistema operativo in esecuzione, la configurazione del dispositivo, applicazioni e servizi in esecuzione, vulnerabilità e debolezze del sistema. Questo può avvenire con una molteplicità di modi differenti, solitamente osservando i pacchetti di rete e, ad un livello più alto, il comportamento dei protocolli applicativi.
+    \item \textbf{EOL (End of Life)}: indica la fine del supporto tecnico e degli aggiornamenti di sicurezza per un software o sistema operativo. Dopo questa fase, il sistema diventa vulnerabile a nuove minacce.
+    \item \textbf{DoS (Denial of Service)}: attacco volto a rendere un sistema o servizio non disponibile per gli utenti legittimi tramite sovraccarico o interruzioni.
+    \item \textbf{RCE (Remote Code Execution)}: vulnerabilità che consente l'esecuzione remota di codice arbitrario su un sistema, una delle minacce più gravi per la sicurezza.
+    \item \textbf{Privilege Escalation}: tecnica che consente a un attaccante di ottenere privilegi di accesso più elevati su un sistema, spesso sfruttando vulnerabilità note.
+    \item \textbf{Buffer Overflow}: vulnerabilità in cui dati eccedenti la capacità del buffer di memoria possono causare l'esecuzione di codice arbitrario, spesso portando a RCE.
+    \item \textbf{Fingerprinting}: tecnica per identificare e caratterizzare un sistema, servizio o applicazione raccogliendo informazioni sulla configurazione e sulle caratteristiche, spesso utilizzata analizzando pacchetti di rete e comportamento dei protocolli.
 \end{itemize}
