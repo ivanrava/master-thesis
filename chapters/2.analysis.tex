@@ -1,82 +1,96 @@
 In cui si descrive il processo di analisi della soluzione software che si intende sviluppare, enumerando i principali requisiti richiesti.
 
-\section{Requisiti funzionali}
-Ovvero ciò che il sistema dovrà necessariamente fare.
+\section{Requisiti Funzionali}
+I requisiti funzionali sono le funzionalità fondamentali che il sistema deve necessariamente implementare per rispondere agli obiettivi progettuali.
 
 \subsection{Multi-tenancy}
-Siccome l'obiettivo finale è commercializzare il prodotto così sviluppato, è imperativo che il sistema supporti una gestione degli utenti di tipo \emph{multi-tenant}.
+Poiché l'obiettivo finale è la commercializzazione del prodotto sviluppato, è essenziale che il sistema supporti una gestione degli utenti basata sul modello \emph{multi-tenant}.
 
-La gestione degli utenti multi-tenant è un modello architetturale utilizzato in sistemi software e in particolar modo nelle applicazioni SaaS con più clienti. In questi sistemi esistono più utenti (detti \emph{tenant}, appunto) che condividono la stessa infrastruttura software e hardware, ma mantengono i loro dati e configurazioni separati e isolati, pur non fisicamente almeno logicamente e funzionalmente.
+La gestione multi-tenant rappresenta un modello architetturale utilizzato nei sistemi software, in particolare nelle applicazioni SaaS, dove molteplici utenti (\emph{tenant}) condividono la stessa infrastruttura software e hardware. In questo contesto, i dati e le configurazioni di ciascun tenant vengono mantenuti separati e isolati, almeno a livello logico e funzionale, anche se non necessariamente a livello fisico.
 
-In particolare, in questa applicazione la logica \emph{multi-tenant} sarebbe applicata alla gestione delle utenze del sistema. In fase di analisi sono emerse due possibili gerarchie adottabili.
+Nel caso specifico di questa applicazione, la logica \emph{multi-tenant} è applicata alla gestione delle utenze del sistema. Durante l'analisi sono state identificate due possibili gerarchie di gestione degli utenti.
 
-\subsubsection{A tre livelli}
+\subsubsection{Gerarchia a tre livelli}
 \label{3-level}
-In questo scenario i livelli di utenze sono strutturati in questo modo:
+In questa configurazione, la gerarchia delle utenze è strutturata come segue:
+
 \begin{enumerate}
-    \item Sulla sommità vi è \textbf{un'unica utenza amministrativa} con poteri pressoché illimitati sul sistema, gestita in modo esclusivo dall'azienda che gestisce il sistema in oggetto.
-    \item Al di sotto di essa, stanno un numero potenzialmente illimitato di \textbf{tenant}, che possono essere creati solo dall'utenza amministrativa di livello superiore.
-    
-    I tenant rappresentano i rivenditori (\emph{reseller}) del servizio. Siccome questo prodotto è concepito per essere manutenuto da un provider di rete, è logico considerare la possibilità che questo sistema possa essere offerto ad utenti che dispongano di ulteriori clienti a cui rivendere il sistema.
-    
-    In alternativa, queste utenze possono anche essere pensate come quelle di organismi o aziende multi-individuo, al di sotto delle quali stanno molteplici utenti di cui si vuole raccogliere i risultati, piuttosto che clienti di un rivenditore.
-    \item Infine, all'ultimo grado della gerarchia stanno gli utenti semplici. Queste utenze possono essere create sia dai \emph{tenant} che dall'amministratore principale, anche se questo in teoria non dovrebbe aver mai realisticamente bisogno di farlo.
+    \item \textbf{Utenza amministrativa principale}: posizionata al vertice della gerarchia, questa utenza ha poteri pressoché illimitati sul sistema ed è gestita esclusivamente dall'azienda responsabile del sistema stesso.
+    \item \textbf{Tenant}: rappresentano rivenditori (\emph{reseller}) del servizio o entità organizzative multi-individuo, come aziende o enti, che possono disporre di ulteriori clienti o utenti. Questi tenant sono creati dall'utenza amministrativa principale e possono creare utenti di livello inferiore.
+    \item \textbf{Utenti semplici}: si trovano all'ultimo livello della gerarchia. Queste utenze possono essere create sia dai tenant che dall'utenza amministrativa principale, anche se quest'ultima, realisticamente, non dovrebbe aver bisogno di farlo.
 \end{enumerate}
-Ogni utenza può vedere, controllare e gestire tutto ciò che viene fatto ai livelli inferiori, ma non da utenze sue pari o superiori in gerarchia.
 
-Nell'ambito del nostro sistema, tutti gli utenti di questa gerarchia sono in grado di creare e configurare task di scansione, bersagli, consultare i risultati, ecc.
+Ogni utenza può visualizzare, controllare e gestire le attività svolte dalle utenze dei livelli inferiori, ma non da quelle dello stesso livello o superiore.
 
-Tuttavia, queste funzionalità sono limitate e controllate per tutti al di fuori dell'amministratore unico. Infatti, ogni utente dei livelli inferiori è soggetto a un limite sulle risorse utilizzate che è stato imposto al momento della sua creazione dall'utenza direttamente responsabile per essa (maggiori dettagli in \ref{quote-spec}).
+Nel contesto del sistema proposto, tutti gli utenti all'interno di questa gerarchia hanno la capacità di creare e configurare task di scansione, bersagli, e consultare i risultati. Tuttavia, le funzionalità sono soggette a limitazioni basate sulle risorse assegnate. Ogni utente di livello inferiore è vincolato dai limiti imposti dall'utenza responsabile per la sua creazione (per maggiori dettagli, vedere \ref{quote-spec}).
 
-\subsubsection{A quattro livelli}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.6\textwidth]{img/hierarchies.png}
+    \caption{Gerarchie di utenti considerate per la funzionalità di multi-tenancy}
+\end{figure}
+
+\subsubsection{Gerarchia a quattro livelli}
 \label{4-level}
-Un'altra possibilità poteva essere una gerarchia a quattro livelli, strutturata come segue:
+Un'alternativa alla precedente è rappresentata da una gerarchia a quattro livelli, strutturata come segue:
+
 \begin{enumerate}
-    \item Alla sommità vi sta sempre un'utenza amministrativa unica e onnipotente, con facoltà di creare gli utenti sottostanti e gestirli.
-    \item Al di sotto sono posti solo i rivenditori / \emph{reseller}. Questi possono creare utenti rappresentanti dei clienti finali.
-    \item Questi utenti rappresentano i singoli clienti privati o, nel caso di un'azienda, l'amministratore di sistema incaricato per la sicurezza informatica di quell'azienda (o il CED\footnote{\textbf{Centro Elaborazione Dati}: una struttura fisica / virtuale dedicata alla gestione delle informazioni aziendali a carattere informatico.} o SOC\footnote{\textbf{Security Operations Center}: centro operativo dedicato alla sicurezza informatica, spesso focalizzato sull'\emph{incident response} e il monitoraggio preventivo delle minacce con software SIEM / IDS / IPS e/o altri strumenti.}, se presente e operativo nel contesto aziendale specifico).
-    \item Infine, gli utenti creati per ogni singola azienda. Questi utenti avrebbero solo la possibilità di controllare / monitorare i dati raccolti, ma senza intervenire sul processo di scansione, lasciato in responsabilità agli utenti con maggiori competenze.
+    \item \textbf{Utenza amministrativa principale}: posizionata al vertice, con poteri illimitati e la facoltà di creare e gestire le utenze sottostanti.
+    \item \textbf{Rivenditori / \emph{Reseller}}: queste utenze rappresentano i fornitori del servizio ai clienti finali e possono creare utenti rappresentanti di tali clienti.
+    \item \textbf{Clienti amministratori}: utenti che rappresentano singoli clienti privati o amministratori di sistema di aziende. Questi ultimi possono essere responsabili per la sicurezza informatica aziendale o appartenere a dipartimenti specifici, come il CED\footnote{Centro Elaborazione Dati: struttura dedicata alla gestione delle informazioni aziendali in ambito informatico.} o il SOC\footnote{Security Operations Center: centro operativo dedicato alla sicurezza informatica, con focus su risposta agli incidenti e monitoraggio preventivo delle minacce tramite strumenti specifici come SIEM, IDS o IPS.}.
+    \item \textbf{Utenti aziendali}: situati all'ultimo livello, questi utenti hanno accesso limitato alle funzionalità del sistema, con la sola possibilità di monitorare e consultare i dati raccolti, senza intervenire sul processo di scansione.
 \end{enumerate}
-Si noti come questa architettura sia del tutto simile alla precedente, ma con l'unica aggiunta di un ulteriore livello che è in grado di vedere i risultati del livello immediatamente superiore, ma senza poter configurare scansioni o simili meccaniche.
+
+Questa architettura è simile alla precedente, con l'unica aggiunta di un ulteriore livello che consente una visione parziale dei risultati prodotti dal livello immediatamente superiore, senza però poter configurare o modificare alcun parametro del sistema.
 
 \subsection{Limiti d'uso (quote di scansione)}
 \label{quote-spec}
-Siccome questo progetto è pensato per diventare un SaaS (come approfondito in \ref{saas}), una parte fondamentale del processo di analisi è stata escogitare un sistema di controllo delle risorse, eventualmente controllata ad un pagamento dell'utente del servizio.
+Poiché questo progetto è concepito per evolversi in un SaaS (come discusso in \ref{saas}), una parte cruciale del processo di analisi è stata la progettazione di un sistema di controllo delle risorse, eventualmente collegato al modello di pagamento degli utenti.
 
-Inizialmente si è pensato ad un sistema minimale di quote mensili di scansione. Una quota nel contesto di questo progetto è definito come un numero intero $> 0$ che denota il numero di nodi scansionabili in un mese dall'utente subordinato a tale limite. In pratica, la quota si traduce nel numero di IP che un utente può visitare mensilmente con lo scanner fornito dal servizio.
+In prima istanza, è stato considerato un sistema di quote mensili per le scansioni. Una quota, in questo contesto, è definita come un numero intero maggiore di zero ($n > 0$), che indica il numero di nodi scansionabili in un mese dall'utente a cui è attribuita. In termini pratici, la quota corrisponde al numero di indirizzi IP che l'utente può sottoporre a scansione mensilmente utilizzando il servizio.
 
-Più nello specifico si applicano le seguenti condizioni d'uso:
+Le condizioni d'uso specifiche sono le seguenti:
 \begin{itemize}
-    \item Il numero di scansioni si rinnova all'inizio di ogni mese. Non ci sono differenze per tenere conto del diverso numero dei giorni di ogni mese.
-    \item Una scansione che interessa $n$ IP effettivamente consuma $n$ unità di quota per quel mese.
-    \item Nodi spenti contano comunque e causano un decremento della quota né più né meno.
-    \item Scansionare più volte lo stesso IP nello stesso mese, causa più volte il medesimo decremento che intacca la quota di quel mese.
-    \item Eventuali scansioni "non consumate" dal mese precedente non si cumulano in quello nuovo.
+    \item Il numero di scansioni assegnato si rinnova all'inizio di ogni mese, indipendentemente dalla diversa durata dei mesi.
+    \item Ogni scansione che coinvolge $n$ indirizzi IP consuma esattamente $n$ unità della quota mensile disponibile.
+    \item I nodi non attivi (``spenti'') contano comunque ai fini del decremento della quota.
+    \item Scansionare ripetutamente lo stesso indirizzo IP nello stesso mese comporta una riduzione della quota per ogni iterazione della scansione.
+    \item Le unità di quota non consumate entro la fine del mese non sono cumulabili per i mesi successivi.
 \end{itemize}
 
-Le quote sono scelte e applicate dall'utente responsabile per l'utenza interessata dalla quota (ovvero quello che l'ha creata).
-
-L'effettivo processo di fatturazione al cliente finale non è considerato nel progetto e si suppone realizzato in altra sede.
+Le quote sono stabilite e assegnate dall'utente responsabile per la creazione dell'utenza interessata. Tuttavia, l'effettivo processo di fatturazione al cliente finale non rientra nell'ambito del progetto e si suppone realizzato separatamente.
 
 \subsection{Task di scansione}
-Il sistema software in oggetto dovrebbe essere in grado di definire delle \emph{scansioni} (da qui in avanti definite \textbf{task}) su dei nodi di rete.
+Il sistema software dovrebbe consentire la definizione di \emph{task} di scansione su nodi di rete specifici.
 
-Scopo delle scansioni così definite è condurre un \textbf{vulnerability assessment} completo, ma privo di un vero e proprio \emph{penetration testing}, manuale o semi-automatico dirsivoglia.
+L'obiettivo primario di tali task è condurre un \textbf{vulnerability assessment} completo, senza includere elementi di \emph{penetration testing}, sia manuale che semi-automatico.
 
-In aggiunta alla selezione del bersaglio, queste scansioni possono essere configurate dall'utente finale sia per quanto riguarda il livello di dettaglio dei risultati, che per quanto riguarda la loro organizzazione temporale.
+In aggiunta alla selezione dei bersagli, i task di scansione devono essere configurabili dall'utente per quanto riguarda il livello di dettaglio dei risultati e l'organizzazione temporale delle esecuzioni.
 
-\subsubsection{Temporizzazione / calendarizzazione}
-In particolare, deve essere possibile definire dei task di scansione ricorrenti, eseguibili regolarmente, o comunque periodicamente, almeno secondo dei calendari prefissati a cadenza mensile.
+\subsubsection{Temporizzazione e calendarizzazione}
+Il sistema deve supportare la definizione di task di scansione ricorrenti, programmabili secondo calendari a cadenza regolare, come quella mensile.
 
-In alternativa, deve essere possibile per l'utente definire task di scansione al di fuori di calendari e ricorrenze periodiche, ad esempio per verificare una tantum la sicurezza di uno o più nodi.
+In alternativa, gli utenti devono avere la possibilità di definire task di scansione \emph{ad hoc}, da eseguire una tantum per verifiche specifiche di sicurezza su uno o più nodi.
 
 \subsection{Bersagli}
-Anche i bersagli considerati dalle scansioni devono poter essere anch'essi gestiti con libertà. In particolare, dovrebbero poter supportare nomi di dominio, indirizzi IPv4, IPv6 e anche insiemi di più nodi / IP. A tal fine devono essere supportati strumenti come la notazione CIDR.
+I bersagli delle scansioni devono poter essere gestiti con la massima flessibilità. Il sistema deve supportare:
+\begin{itemize}
+    \item Nomi di dominio (DNS);
+    \item Indirizzi IPv4 e IPv6;
+    \item Insiemi di nodi o indirizzi IP, specificati attraverso notazioni come la CIDR.
+\end{itemize}
 
-Inoltre, deve essere possibile anche specificare l'insieme degli host bersaglio attraverso file. Infatti, in contesti aziendali spesso gli host considerati da ogni connessione sono parecchi, sono enumerati in file generati da procedure automatiche ed è impraticabile pensare di inserirli ognuno a mano.
+Inoltre, il sistema deve consentire l'importazione di liste di bersagli tramite file esterni. Questa funzionalità è particolarmente utile in contesti aziendali, dove gli host da analizzare sono spesso numerosi e generati automaticamente da procedure interne, rendendo poco pratico l'inserimento manuale.
 
 \subsection{Risultati}
-Deve essere possibile visionare i risultati ottenuti dal sistema, con particolare attenzione alla severità delle vulnerabilità rilevate, alle soluzioni disponibili e ad ogni altro tipo di dettaglio reperito. Deve essere possibile filtrare i risultati ottenuti, ordinarli e maneggiarli con facilità.
+I risultati delle scansioni devono essere facilmente consultabili, con particolare enfasi su:
+\begin{itemize}
+    \item La severità delle vulnerabilità rilevate;
+    \item Le possibili soluzioni o mitigazioni suggerite;
+    \item Altri dettagli tecnici pertinenti, raccolti durante il processo di scansione.
+\end{itemize}
+
+Il sistema deve offrire strumenti per filtrare, ordinare e gestire i risultati, garantendo una visualizzazione chiara e intuitiva delle informazioni rilevanti.
 
 \section{Requisiti non funzionali}
 Ovvero come il sistema deve comportarsi e a quali standard di qualità, prestazioni, sicurezza e usabilità dovrà conformarsi.
@@ -88,9 +102,6 @@ Il sistema deve pertanto integrare già di per sé dei \emph{default} sicuri e a
 
 \subsection{Efficienza}
 Il sistema deve essere necessariamente efficiente, senza rallentamenti eccessivi nella sua interfaccia. Questo diventa particolarmente critico in sede di reportistica ed analisi dei risultati, dove spesso i dati raccolti da questi sistemi possono accumularsi velocemente.
-
-\subsection{Sicurezza}
-Ovviamente, anche questo sistema deve essere il più possibile sicuro in ogni sua componente.
 
 \section{Requisiti di sistema}
 Ovvero quali specifiche tecniche e infrastrutturali dovranno essere rispettate dal sistema in oggetto.
