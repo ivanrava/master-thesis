@@ -3,7 +3,7 @@ Come backend di scansione si è adottato il framework di \textbf{Greenbone OpenV
 In questo capitolo si vuole spiegare nel dettaglio la struttura e il funzionamento del sistema usato come base del progetto.
 
 \section{Storia del progetto}
-\textbf{OpenVAS} (\emph{Open Vulnerability Assessment Scanner}) è una piattaforma \emph{open source} per la rilevazione, l'analisi e la gestione di vulnerabilità e falle di sicurezza.
+\textbf{OpenVAS} \cite{openvas-scanner} (\emph{Open Vulnerability Assessment Scanner}) è una piattaforma \emph{open source} per la rilevazione, l'analisi e la gestione di vulnerabilità e falle di sicurezza.
 
 OpenVAS nasce nel 2005 come \emph{fork} dello scanner \textbf{Nessus}, quando quest'ultimo modificò la propria licenza, diventando un software proprietario distribuito sotto licenza commerciale. La comunità \emph{open source} ha quindi manutenuto il \emph{fork} risultante, inizialmente denominato \emph{GNessUs} e successivamente rinominato \emph{OpenVAS}. In seguito, il progetto è entrato a far parte delle iniziative supportate economicamente dalla \emph{Software in the Public Interest}.
 
@@ -17,7 +17,7 @@ Tra i principali contributori iniziali del \emph{fork} figuravano gli sviluppato
 
 Con il tempo, altre aziende hanno contribuito al progetto, garantendo un \emph{feed} stabile e aggiornato di test di vulnerabilità, una componente chiave del sistema. Nel 2010, OpenVAS ha rotto la compatibilità con Nessus, consolidando la propria identità indipendente. Negli anni successivi, ha ricevuto ulteriore supporto dalla BSI e dalla DFN (la rete di ricerca tedesca), che hanno contribuito pubblicando avvisi di sicurezza regolari sotto licenza GPL.
 
-Nel 2017, i contributi di Greenbone sono diventati evidenti con un cambio di nome ufficiale: il progetto non è più noto come \emph{OpenVAS framework}, ma come \textbf{Greenbone Vulnerability Management (GVM)}. OpenVAS identifica ora esclusivamente lo scanner, che è uno dei molti componenti del framework.
+Nel 2017, i contributi di Greenbone sono diventati evidenti con un cambio di nome ufficiale: il progetto non è più noto come \emph{OpenVAS framework}, ma come \textbf{Greenbone Vulnerability Management (GVM)} \cite{openvas-history}. OpenVAS identifica ora esclusivamente lo scanner, che è uno dei molti componenti del framework.
 
 \begin{figure}
     \centering
@@ -40,20 +40,21 @@ Il progetto è finanziato principalmente tramite la sottoscrizione al \emph{feed
 Il Greenbone Operating System è il sistema operativo che alimenta le \emph{appliance} fornite da Greenbone. Si tratta di un insieme di strumenti grafici e TUI\footnote{\emph{Terminal User Interface}} che semplificano la gestione e la manutenzione del sistema. GOS integra anche supporto commerciale da parte di Greenbone e vari miglioramenti all'esperienza utente.
 
 \section{Architettura}
+\label{greenbone-architecture}
 L'architettura del framework Greenbone Vulnerability Management (GVM) si compone di numerosi componenti interconnessi, ognuno con un ruolo specifico nel sistema.
 
 \subsection{gvmd}
-Il demone UNIX \texttt{gvmd} costituisce il cuore del framework GVM. Si occupa della gestione e dell'interconnessione tra tutte le principali componenti di basso livello, fornendo un'API di gestione operabile tramite il protocollo \textbf{Greenbone Management Protocol (GMP)}.
+Il demone UNIX \texttt{gvmd} \cite{gvmd} costituisce il cuore del framework GVM. Si occupa della gestione e dell'interconnessione tra tutte le principali componenti di basso livello, fornendo un'API di gestione operabile tramite il protocollo \textbf{Greenbone Management Protocol (GMP)}.
 \label{gmp}
 
 Le principali funzioni del \texttt{gvmd} includono:
 \begin{itemize}
     \item Comunicazione con lo scanner OpenVAS tramite il protocollo \textbf{Open Scanner Protocol (OSP)}.
     \item Gestione del database (generalmente un'istanza di PostgreSQL) per la memorizzazione di dati ricevuti dai feed configurati, risultati delle scansioni, utenti e ruoli interni al framework GVM.
-    \item Funzione di server web per \textbf{GSA}, l'interfaccia web ufficiale di Greenbone, attraverso la quale si gestisce il sistema.
+    \item Funzione di server web per \textbf{GSA} \cite{gsad}, l'interfaccia web ufficiale di Greenbone, attraverso la quale si gestisce il sistema.
 \end{itemize}
 
-Il demone \texttt{gvmd} consente inoltre un'operatività diretta tramite l'API offerta sotto protocollo GMP, permettendo la creazione di strumenti personalizzati di automazione o interfacce alternative.
+Il demone \texttt{gvmd} consente inoltre un'operatività diretta tramite l'API offerta sotto protocollo GMP \cite{gmp}, permettendo la creazione di strumenti personalizzati di automazione o interfacce alternative.
 
 \begin{figure}[h!]
     \includegraphics[width=\textwidth]{img/greenbone-community-22.4-architecture.png}
@@ -61,9 +62,15 @@ Il demone \texttt{gvmd} consente inoltre un'operatività diretta tramite l'API o
 \end{figure}
 
 \subsection{Greenbone Security Assistant (GSA)}
-\textbf{Greenbone Security Assistant (GSA)} è l'interfaccia web nativa di Greenbone, sviluppata con React, progettata per l'interazione diretta dell'utente tramite browser.
+\textbf{Greenbone Security Assistant (GSA)} \cite{gsa} è l'interfaccia web nativa di Greenbone, sviluppata con React, progettata per l'interazione diretta dell'utente tramite browser.
 
-Il web server \texttt{gsad} eroga \textbf{GSA} e svolge anche funzioni di backend. \`E interamente realizzato in linguaggio C standard.
+Il web server \texttt{gsad} \cite{gsad} eroga \textbf{GSA} e svolge anche funzioni di backend. \`E interamente realizzato in linguaggio C standard.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=\textwidth]{img/gsa.jpg}
+    \caption{Interfaccia di GSA}
+\end{figure}
 
 \subsection{Vulnerability Test (VT)}
 Gli scanner eseguono applicazioni sui sistemi bersaglio per identificare vulnerabilità. Questi programmi, detti \textbf{Vulnerability Test (VT)}, o talvolta \textbf{Network Vulnerability Test (NVT)}, sono scritti nel linguaggio \textbf{NASL}.
@@ -83,14 +90,14 @@ SCAP comprende un insieme di standard, definiti \textbf{componenti}, tra cui:
     \item \textbf{Common Vulnerability Scoring System (CVSS)}: valuta la severità di una vulnerabilità con un punteggio compreso tra 0 e 10.
 \end{itemize}
 
-GVM utilizza i feed menzionati nella sezione \ref{feed} per aggiornare continuamente i dati SCAP necessari, in particolare quelli relativi a \textbf{CVE} e \textbf{CPE}. Il framework include anche un calcolatore del punteggio \textbf{CVSS} accessibile tramite \textbf{GSA}.
+GVM utilizza i feed menzionati nella sezione \ref{feed} per aggiornare continuamente i dati SCAP necessari, in particolare quelli relativi a \textbf{CVE} e \textbf{CPE} \cite{greenbone-scap}. Il framework include anche un calcolatore del punteggio \textbf{CVSS} accessibile tramite \textbf{GSA}.
 
 \subsection{OpenVAS e Notus}
 \label{notus}
-Lo scanner principale del sistema è \textbf{OpenVAS}, ma è disponibile anche un altro componente chiamato \textbf{Notus}. Quest'ultimo è un modulo Python che ottimizza e razionalizza l'esecuzione degli script NASL.
+Lo scanner principale del sistema è \textbf{OpenVAS}, ma è disponibile anche un altro componente chiamato \textbf{Notus} \cite{notus-scanner}. Quest'ultimo è un modulo Python che ottimizza e razionalizza l'esecuzione degli script NASL.
 
 \label{openvasd}
-A partire dalla versione 23.0 di OpenVAS, è stato introdotto \texttt{openvasd}, un nuovo demone che integra le funzionalità di OpenVAS (scanner), Notus (ottimizzazione degli script NASL) e \texttt{ospd-openvas} (intermediario che utilizza il protocollo \textbf{OSP} per la comunicazione tra scanner e \texttt{gvmd}).
+A partire dalla versione 23.0 di OpenVAS, è stato introdotto \texttt{openvasd} \cite{openvas-scanner}, un nuovo demone che integra le funzionalità di OpenVAS (scanner), Notus (ottimizzazione degli script NASL) e \texttt{ospd-openvas} (intermediario che utilizza il protocollo \textbf{OSP} per la comunicazione tra scanner e \texttt{gvmd}).
 
 Il demone \texttt{openvasd} è stato riscritto in Rust per migliorarne le prestazioni e la manutenibilità. Inoltre, l'API OSP sarà sostituita da una API HTTP.
 
@@ -152,7 +159,7 @@ Sono disponibili due principali modalità di installazione e gestione del sistem
     \item \textbf{Greenbone Community Containers}: i singoli componenti del framework Greenbone (già descritti in \ref{greenbone-architecture}) sono segregati in immagini Docker separate, garantendo riproducibilità di versioni rilasciate e funzionalità. Grazie poi a \texttt{docker-compose}, i container possono essere orchestrati e gestiti ricostruendo l'architettura generale.
     \label{greenbone-community-containers}
 
-    Maggiori dettagli su questa tecnica di deployment (\ref{compose-architecture}) e sull'uso di Docker (\ref{docker}) e Docker Compose (\ref{docker-compose}) sono forniti nelle sezioni del capitolo relativo all'installazione del progetto finale.
+    Maggiori dettagli su questa tecnica di deployment (\ref{compose-architecture}) e sull'uso di Docker (\ref{docker}) e Docker Compose (\ref{docker-compose}) sono forniti nelle sezioni seguenti.
 \end{itemize}
 
 Alcune distribuzioni Linux offrono pacchetti precompilati nelle loro \emph{repository} native. Tuttavia, Greenbone non garantisce alcun tipo di supporto ufficiale per eventuali errori derivanti dall'uso di queste edizioni, poiché non è coinvolta nel processo di compilazione.
@@ -166,7 +173,7 @@ GMP, un dialetto XML personalizzato, funziona attraverso un processo di richiest
 \begin{itemize}
     \item \textbf{Interfacciamento manuale}: gli sviluppatori possono utilizzare strumenti dedicati per creare manualmente i messaggi XML conformi agli standard Greenbone.
 
-    \item \texttt{python-gvm}: una libreria Python ufficiale sviluppata da Greenbone che semplifica la comunicazione con la socket. Questa libreria offre diversi vantaggi:
+    \item \texttt{python-gvm} \cite{python-gvm}: una libreria Python ufficiale sviluppata da Greenbone che semplifica la comunicazione con la socket. Questa libreria offre diversi vantaggi:
     \begin{itemize}
         \item Automatizzazione della creazione dei messaggi XML, richiedendo solo i parametri necessari.
         \item Gestione integrata dell'autenticazione, necessaria di fatto per tutti i messaggi GMP.
@@ -174,7 +181,7 @@ GMP, un dialetto XML personalizzato, funziona attraverso un processo di richiest
         \item Idratazione automatica delle risposte in oggetti Python utilizzando \texttt{lxml}, facilitando la manipolazione dei documenti XML restituiti.
     \end{itemize}
 
-    \item \texttt{gvm-tools}: uno strumento pensato per gli amministratori di sistema che desiderano gestire OpenVAS da linea di comando, automatizzando operazioni comuni. Questo strumento si basa su \texttt{python-gvm}, agendo come un \emph{wrapper} per la libreria.
+    \item \texttt{gvm-tools} \cite{gvm-tools}: uno strumento pensato per gli amministratori di sistema che desiderano gestire OpenVAS da linea di comando, automatizzando operazioni comuni. Questo strumento si basa su \texttt{python-gvm}, agendo come un \emph{wrapper} per la libreria.
 \end{itemize}
 
 \section{Motivazioni alla base della scelta}

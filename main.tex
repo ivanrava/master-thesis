@@ -5,6 +5,9 @@
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
 
+\usepackage[style=alphabetic]{biblatex}
+\addbibresource{sources.bib}
+
 \begin{document}
     \input{chapters/frontpage}
     \tableofcontents
@@ -25,4 +28,6 @@
     \input{chapters/7.deployment}
     \chapter{Conclusione e sviluppi futuri}
     \input{chapters/8.conclusion}
+
+    \printbibliography
 \end{document}
