@@ -182,6 +182,10 @@ Tutti questi framework servono allo scopo di costruire interfacce utente nel mod
 
 Dopo un'attenta valutazione, è stato scelto \textbf{Vue.js} soprattutto per la sua facilità e intuitività, riconosciuto che in ultima analisi questi framework sono molto simili tra loro in termini di funzionalità e le preferenze sono spesso soggettive e legate agli stili di programmazione più congeniali ad uno sviluppatore piuttosto che ad un altro.
 
+Una funzionalità chiave introdotta con Vue.js 3 è la composition API...
+
+Funzione di setup...
+
 \subsection{Meta-framework}
 Per massimizzare le potenzialità di Vue.js, è stata adottato anche \textbf{Nuxt.js}, un \emph{meta-framework} costruito sopra Vue.js. Nuxt.js offre una serie di funzionalità avanzate che ampliano le capacità di Vue, rendendo lo sviluppo di SPA ancora più efficiente e strutturato, automatizzando molti dei compiti più comuni e offrendo tutta una serie di comodità per lo sviluppatore:
 \begin{itemize}
@@ -197,3 +201,38 @@ Per massimizzare le potenzialità di Vue.js, è stata adottato anche \textbf{Nux
 
 \section{Gerarchia degli utenti}
 Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchia a quattro livelli \ref{4-level} come futuro sviluppo, essendo questa una semplice estensione della prima possibilità.
+
+\section{Docker}
+\label{docker}
+Docker è una piattaforma open-source che consente di automatizzare il deployment di applicazioni all'interno di \textbf{container}. Questa tecnologia è stata usata per l'installazione e pertanto ora segue una spiegazione del suo funzionamento.
+
+\subsection{Container}
+I \textbf{container} sono ambienti leggeri e portabili che racchiudono tutto il necessario per eseguire un'applicazione, inclusi il codice, le librerie, le dipendenze e le configurazioni. Questo approccio consente di garantire che l'applicazione funzioni in modo coerente su diverse macchine e ambienti, riducendo i problemi legati alle differenze di configurazione.
+
+I container rispettano tutta una serie di caratteristiche, ma queste sono quelle principali:
+\begin{itemize}
+    \item \textbf{Isolamento}: I container operano in ambienti isolati, il che significa che le applicazioni in esecuzione in un container non interferiscono con quelle in esecuzione in altri container o nel sistema operativo host. Questo isolamento aiuta a prevenire conflitti tra le dipendenze delle applicazioni.
+    \item \textbf{Portabilità}: I container possono essere eseguiti su qualsiasi sistema che supporti Docker, indipendentemente dal sistema operativo o dalla configurazione hardware. Questo rende facile spostare le applicazioni tra ambienti di sviluppo, test e produzione.
+    \item \textbf{Leggerezza}: I container condividono il kernel del sistema operativo host, il che li rende più leggeri rispetto alle macchine virtuali (VM). Questo consente di eseguire più container sulla stessa macchina senza un significativo sovraccarico di risorse, ma anche una scalabilità facile e veloce.
+    \item \textbf{Volatilità}: a parte per l'immagine di base, tutto ciò che avviene sul container è in generale non persistito su disco e non si mantiene tra i riavvii.
+\end{itemize}
+
+\subsection{Immagini}
+Un'\textbf{immagine} Docker è un file di sola lettura che contiene tutto il necessario per eseguire un'applicazione all'interno di un container. Essa include il codice dell'applicazione, le librerie, le dipendenze, le configurazioni e le impostazioni necessarie per l'esecuzione. Le immagini Docker sono fondamentali per il funzionamento dei container, poiché fungono da modello per la creazione di istanze di container.
+
+Le immagini Docker sono composte a strati. Ogni strato rappresenta una modifica apportata all'immagine, come l'aggiunta di file o l'installazione di pacchetti. Questo approccio a strati consente di risparmiare spazio, poiché gli strati comuni possono essere condivisi tra diverse immagini (come versioni diverse di una stessa applicazione). Le immagini possono essere condivise su \textbf{Docker Hub}, che funge da repository centrale per le immagini più popolari.
+
+Una volta creata un'immagine Docker non può essere modificata. Essa funge da punto di partenza per il container, che la esegue e crea un ambiente su si svolge tutto il ciclo di vita del container. Se è necessario apportare modifiche, si deve creare una nuova immagine a partire da quella esistente. Questo garantisce coerenza e riproducibilità.
+
+\subsection{Persistenza}
+I container sono progettati per essere temporanei e non permanenti. Infatti, i container vengono spesso creati, utilizzati e distrutti in un breve lasso di tempo. Possono essere avviati per eseguire un'attività specifica e poi terminati una volta completato il compito. Questo è particolarmente utile in scenari come il deployment di microservizi, dove i container possono essere scalati su richiesta.
+
+I container non sono progettati per mantenere dati persistenti. Se un container viene eliminato, tutti i dati non salvati all'esterno del container andranno persi. Per gestire i dati persistenti, si utilizzano volumi o storage esterno, che possono essere montati tra container e sistema host.
+
+Da questo segue anche è facile aggiornare o sostituire un'applicazione. Se è necessario apportare modifiche, si può semplicemente creare una nuova immagine e avviare un nuovo container, senza preoccuparsi di migrare dati o configurazioni da un'istanza precedente.
+
+\subsection{Docker Compose}
+\label{docker-compose}
+\textbf{Docker Compose} è uno strumento che consente di definire e gestire applicazioni multi-container in modo semplice e intuitivo. Si tratta dello strumento usato per gestire l'installazione di Greenbone basata sui container (come anticipato in \ref{greenbone-community-containers}), ma oramai è prassi usarlo per quasi ogni contesto applicativo, anche solo per cristallizzare su disco le configurazioni di avvio dei container.
+
+Infatti, Docker Compose usa dei file di configurazione in formato YAML con cui gli sviluppatori possono specificare i vari servizi, reti e volumi necessari per l'applicazione, semplificando così il processo di deployment e gestione, che rimane fissato su disco per usi futuri. Il file di configurazione consente di definire un numero variabile di servizi e le interconnessioni tra di essi, mantenendo un livello molto alto di gestione (si può parlare di \emph{IaC - Infrastructure as Code}).
