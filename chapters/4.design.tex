@@ -1,15 +1,27 @@
-In cui si descrive la progettazione del software a un più basso livello: scelte progettuali, tecnologie e linguaggi adottati.
+In cui si descrive la progettazione del software a un più basso livello, discutendo le scelte progettuali, le tecnologie e i linguaggi adottati.
 
 \section{Greenbone OpenVAS}
-Come backend di scansione per il sistema, inizialmente si è optato per interfacciarsi a \textbf{Greenbone OpenVAS}.
+Come backend di scansione per il sistema, inizialmente si è optato per interfacciarsi esclusivamente a \textbf{Greenbone OpenVAS}.
+
+I principali fattori che motivano la scelta di OpenVAS come backend di scansione preferito del progetto includono:
+
+\begin{itemize}
+    \item \textbf{Disponibilità di una versione gratuita}: OpenVAS offre una soluzione senza costi di licenza, permettendo all'azienda di occuparsi solo della predisposizione e manutenzione dell'hardware necessario. Tuttavia, è importante notare che la versione gratuita non include tutti i test di sicurezza disponibili, rendendo necessaria una valutazione aggiuntiva per determinare se i dati forniti siano in linea con il \emph{threat model} dell'azienda.
+
+    \item \textbf{Librerie ufficiali}: Greenbone offre strumenti ufficiali che semplificano l'interazione con il sistema OpenVAS e implementano un ampio spettro di funzionalità del protocollo GMP.
+    
+    \item \textbf{Open source}: OpenVAS è un progetto open source, consentendo la visione e la verifica del codice sorgente. Questo riduce il rischio di essere costretti ad usare componenti non documentati o poco trasparenti.
+\end{itemize}
 
 \section{Base di dati}
 Il framework di Greenbone già include un suo database interno per la gestione degli utenti e dei ruoli associati ad essi, così come per le scansioni, i risultati e la reportistica. Inoltre, gran parte della logica di business rilevante è già definita e può essere personalizzata con un sistema di permessi abbastanza preciso e granulare, rendendo possibile adattarla facilmente ai nostri scopi.
 
-Per questo motivo, si è deciso di non introdurre ridondanza e complessità con un ulteriore database, preferendo invece rimanere aderenti alla base di dati esistente, effettivamente sposando in tutto e per tutto la struttura dei dati proposta da Greenbone.
+Per questo motivo, \textbf{si è deciso di non introdurre ridondanza e complessità con un ulteriore database, preferendo invece appoggiarsi sulla base di dati già esistente}.
 
 \subsection{Schema dei dati originale}
-Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figura \ref{er-crow}\footnote{Si noti che il diagramma ER qui realizzato rappresenta solamente le entità d'interesse considerate per il progetto: il reale database contiene uno schema più esteso e maggiormente interconnesso.}. In particolare:
+Dalla scelta di riutilizzare il database di Greenbone segue che effettivamente sposiamo in tutto e per tutto la struttura dei dati, che è quindi già predisposta per noi.
+
+Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figura \ref{er-crow}\footnote{Si noti che il diagramma ER qui riportato rappresenta solamente le entità d'interesse considerate per il progetto: il reale database contiene uno schema molto più esteso e anche maggiormente interconnesso.}. In particolare:
 \begin{itemize}
     \item Una \textbf{Task} rappresenta una scansione predisposta e configurata da un utente (\textbf{User}).
     \item Un utente appartiene ad uno o più ruoli (\textbf{Role}) (nel nostro caso specifico apparterrà sempre a uno ed un solo ruolo). Ogni ruolo inoltre può possedere dei permessi (\textbf{Permission}).
@@ -23,12 +35,20 @@ Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figur
         \item \emph{Policy}: ovvero una scansione prescritta a norma di legge o in ottemperanza a qualche specifico standard. Queste ovviamente andrebbero lasciate così come fornite dal feed.
     \end{itemize}
     Questa distinzione internamente non è gestita con una separazione in entità distinte, come si può vedere dallo schema (allo stesso modo il progetto realizzato non fa distinzioni tra le due tipologie di configurazioni, internamente).
+
+    \begin{figure}[h!]
+        \centering
+        \includegraphics[width=\textwidth]{img/er_crow.png}
+        \caption{Schema dei dati d'interesse di GVM}
+        \label{er-crow}
+    \end{figure}
+
     \item Ogni scansione viene eseguita su un bersaglio specifico (\textbf{Target}). Un bersaglio di Greenbone OpenVAS specifica uno o più nodi di rete da scansionare, dettagliando anche eventuali credenziali di rete da usare per simulare un attacco di tipo \emph{white box}\footnote{In un attacco / test di tipo \emph{white box} l'attaccante è a disposizione di conoscenza rilevante e approfondita circa l'infrastruttura bersaglio. In un test \emph{black box} invece non viene fornito nessun aiuto / informazione, mentre in un \emph{gray box} vi è una via di mezzo, rappresentando di fatto la tipologia d'attacco più comune.} e le porte da considerare nella scansione.
     \begin{itemize}
         \item Le porte sono definite tramite un'entità \textbf{Portlist} associata. Questa internamente definisce le singole porte in modo efficiente tramite dei \emph{range} divisi per tipo (UDP o TCP).
     \end{itemize}
     \item Un task è eseguito da uno \textbf{Scanner}. In pratica questo è quasi sempre OpenVAS, ma Greenbone mette a disposizione anche uno scanner fittizio detto \textbf{CVE}, già dettagliato in \ref{cve}.
-    \item Un task può essere associato anche ad una \textbf{Schedule}, che ne definisce un'eventuale esecuzione futura / ritardata e/o periodica / ricorrente. A basso livello la schedule è espressa tramite standard \textbf{iCalendar}.
+    \item Un task può essere associato anche ad una \textbf{Schedule}, che ne definisce un'eventuale esecuzione futura / ritardata e/o periodica / ricorrente. A basso livello la schedule è espressa tramite standard \textbf{iCalendar} \cite{rfc5545}.
     \item Un task contiene informazioni relative alla sua esecuzione, come il suo stato (in pausa, in esecuzione, in coda, fallita per errore, ecc.) e la percentuale di completamento.
     \item Infine, un task genera uno o più \textbf{Report}. Questi recano informazioni sul periodo temporale a cui sono riferiti e sul numero delle vulnerabilità trovate, nonché la loro severità. Le vulnerabilità si dividono in:
     \begin{itemize}
@@ -46,12 +66,6 @@ Lo schema dei dati proposto da Greenbone è strutturato come illustrato in figur
     \end{itemize}
 \end{itemize}
 
-\begin{figure}
-    \includegraphics[width=\textwidth]{img/er_crow.png}
-    \caption{Schema dei dati d'interesse di GVM}
-    \label{er-crow}
-\end{figure}
-
 \section{Architettura}
 Come anticipato in \ref{microservices}, in fase di analisi è emersa la necessità di realizzare sin dall'inizio un sistema modulare e disaccoppiato. Da un punto di vista puramente teorico e di architettura si deducono i seguenti sistemi con le seguenti funzionalità:
 \begin{itemize}
@@ -59,6 +73,13 @@ Come anticipato in \ref{microservices}, in fase di analisi è emersa la necessit
     \item Un sistema che fa da interconnessione e adattatore tra il backend di scansione, introducendo un livello di indirezione e fornendo funzionalità ad un sistema \emph{user-facing} attraverso un'API unificata.
     \item Il sistema di interfaccia, che si interconnette con l'adattatore di cui sopra per fornire un \emph{frontend} facilitato e moderno per l'uso da parte dell'utente finale.
 \end{itemize}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/systems-highlevel.png}
+    \caption{Architettura globale / ad alto livello dei componenti del sistema. Il backend adattatore lascia aperta la possibilità di integrazione con sistemi differenti da OpenVAS mantenendo un'unica interfaccia}
+\end{figure}
+
 Tenuto conto delle moderne tendenze di sviluppo, dei framework supportati e della necessità di avere un sistema \emph{cross-platform}, si è deciso per sviluppare gli ultimi due sistemi tramite un'\textbf{applicazione web} composta da due parti distinte ricalcanti rispettivamente gli scopi dei sistemi sopracitati:
 \begin{itemize}
     \item Un \emph{backend} realizzato in forma di \textbf{REST API}. Questo si appoggerà sul database interno di Greenbone OpenVAS indirettamente attraverso il protocollo GMP.
@@ -66,9 +87,9 @@ Tenuto conto delle moderne tendenze di sviluppo, dei framework supportati e dell
 \end{itemize}
 
 \section{REST API di Backend}
-REST è un paradigma ormai molto popolare di sviluppo delle API web. Una REST API spesso non implementa tutto lo standard REST, ma quanto segue sono le specifiche più comuni e popolarmente identificate come minime:
+REST è un paradigma ormai molto popolare di sviluppo delle API web. Una REST API spesso non implementa tutto lo standard REST, ma quanto segue sono solo le specifiche più comuni e popolarmente identificate come minime:
 \begin{itemize}
-    \item \textbf{Stateless}: ogni richiesta del client deve contenere tutte e sole le informazioni necessarie a comprendere la richiesta. In teoria il server non dovrebbe neanche mantenere stato e gestire l'autenticazione mediante token di accesso, ma in pratica questo aspetto dello standard è modificato per usare i cookie di sessione, specie quando la REST API è consumata esclusivamente da client web come una Single Page Application (scenario sempre più comune).
+    \item \textbf{Stateless}: ogni richiesta del client deve contenere tutte e sole le informazioni necessarie a comprendere la richiesta. In teoria il server non dovrebbe avere bisogno di mantenere uno stato per rispondere alla maggior parte delle richieste. L'autenticazione è gestita pertanto mediante token di accesso, ma in pratica questo aspetto dello standard è modificato per usare i cookie di sessione, specie quando la REST API è consumata esclusivamente da client web come una Single Page Application (scenario sempre più comune, per quanto degenere rispetto agli scopi originali dello standard).
     \item Le entità del sistema sono rappresentate come \textbf{risorse}, identificate dallo URL e da formati specifici come JSON (usato per questo progetto) o XML.
     \item La semantica delle operazioni eseguibili sulle risorse è sottintesa dai \textbf{metodi HTTP} utilizzati (GET per ottenere la/e risorsa/e, POST per crearne di nuova, PUT / PATCH per aggiornare le risorse, DELETE per rimuoverne).
 \end{itemize}
@@ -93,7 +114,7 @@ Avendo scelto il linguaggio Python, emergono soprattutto tre framework sufficien
     \item \textbf{Flask} è un micro-framework leggero e flessibile per Python, progettato per essere semplice e facile da estendere. Esso fornisce solo le funzionalità di base, lasciando agli sviluppatori la libertà di scegliere individualmente le singole librerie e gli strumenti da utilizzare. La sua architettura minimalista lo rende ideale per progetti più piccoli o per applicazioni che richiedono una personalizzazione significativa. Grazie alla sua semplicità, è spesso utilizzato per sviluppare prototipi, applicazioni minimali o dal design particolarmente esotico, e può essere facilmente esteso con numerosi plugin e librerie di terze parti.
     \item \textbf{FastAPI} è un framework moderno e veloce per costruire API con Python 3.6+ fortemente basato sullo standard \textbf{OpenAPI}. È progettato per essere altamente performante e facile da usare. FastAPI poggia sul framework web Starlette e la libreria Pydantic, che tramite le annotazioni di Python fornisce di default una validazione automatica dei dati. Inoltre, FastAPI supporta la generazione automatica e auto-aggiornante di una documentazione interattiva delle API sviluppata, grazie allo standard OpenAPI e Swagger UI o ReDoc. Infine, supporta anche la programmazione asincrona, a differenza di tutti gli altri framework.
 \end{itemize}
-In questo progetto si è deciso per l'adozione del framework Flask, sulla base di una serie di considerazioni tecniche e pratiche che ne evidenziano l'idoneità rispetto alle altre opzioni disponibili.
+In questo progetto si è deciso per l'adozione del framework \textbf{Flask} \cite{flask}, sulla base di una serie di considerazioni tecniche e pratiche che ne evidenziano l'idoneità rispetto alle altre opzioni disponibili:
 
 Infatti, sebbene Django offra un ecosistema robusto e completo, è principalmente orientato verso applicazioni full-stack monolitiche e non si presta in modo ottimale alla creazione di REST API, nonostante l'esistenza di Django Rest Framework. Quest'ultimo, infatti, suggerisce che il framework non è stato concepito in partenza con questo scopo primario in mente.
 
@@ -101,15 +122,15 @@ D'altra parte, FastAPI è un framework moderno progettato specificamente per la 
 
 Flask, al contrario, si distingue per la sua flessibilità rendendolo particolarmente adatto per il caso specifico, che non prevedendo un database risulta abbastanza peculiare. Tra l'altro, sotto questo aspetto si discosta nettamente da FastAPI e Django, che possono risultare eccessivamente rigidi e guidati.
 
-Flask consente di plasmare l'applicazione secondo le specifiche esigenze del progetto, sfruttando un ecosistema di estensioni molto florido. Segue ora in che modo queste estensioni sono state scelte a livello architetturale.
+Flask consente di plasmare l'applicazione secondo le specifiche esigenze del progetto, grazie ad un ecosistema di estensioni molto florido. Segue ora in che modo queste estensioni sono state scelte a livello architetturale.
 
 \subsection{Validazione dei dati e API REST}
 Questo consente tra l'altro di replicare le funzionalità più avanzate di FastAPI, come la validazione dei dati e la generazione automatica della documentazione.
 
 Queste funzionalità sono replicate in Flask attraverso l'uso di plugin ben mantenuti dalla comunità:
 \begin{itemize}
-    \item La validazione dei dati è gestita con la libreria \textbf{Marshmallow}, integrata in Flask con un'estensione che funge da collante tra le librerie.
-    \item \textbf{APIFlask} invece è un plugin / framework secondario che funge da wrapper rispetto a Flask. Il suo scopo è facilitare la creazione di API, ma integrano anche la generazione automatica di specifiche OpenAPI e documentazione interattiva tramite Swagger UI, ReDoc e non solo.
+    \item La validazione dei dati è gestita con la libreria \textbf{Marshmallow} \cite{marshmallow}, integrata in Flask con un'estensione che funge da collante tra le librerie.
+    \item \textbf{APIFlask} \cite{apiflask} invece è un plugin / framework secondario che funge da wrapper rispetto a Flask. Il suo scopo è facilitare la creazione di API, ma integrano anche la generazione automatica di specifiche OpenAPI \cite{openapi-specification} e documentazione interattiva tramite Swagger UI, ReDoc e non solo.
 \end{itemize}
 
 \subsection{Autenticazione e sicurezza}
@@ -135,20 +156,20 @@ Sebbene l'uso di token di accesso offra vantaggi significativi, come una maggior
 
 Tuttavia, è importante notare che nulla vieta di adottare un approccio ibrido, simile a quello per esempio della popolare libreria ufficiale Sanctum del framework Laravel, che supporta entrambi i sistemi di autenticazione, cookie e token. In questo modo, si utilizzano i cookie di sessione per le applicazioni web a pagina singola (SPA), come nel nostro caso, e i token di accesso rimarrebbero a disposizione degli altri client, come le applicazioni mobili. Questa strategia consentirebbe di sfruttare i vantaggi di entrambi i metodi, garantendo una maggiore flessibilità e adattabilità alle diverse esigenze degli utenti e dei dispositivi.
 
-La libreria scelta per gestire questo ambito è la popolare e open-source \texttt{flask-login}.
+La libreria scelta per gestire questo ambito è la popolare e open-source \texttt{flask-login} \cite{flask-login}.
 
 \subsection{Gestione sessioni}
-La gestione delle sessioni è un aspetto cruciale nello sviluppo di applicazioni web, e la scelta del metodo di memorizzazione delle sessioni può influenzare significativamente la sicurezza e le prestazioni dell'applicazione. Di default, Flask utilizza esclusivamente sessioni \emph{client-side}, il che significa che i dati della sessione vengono memorizzati direttamente nei cookie del browser dell'utente. Questo approccio comporta che ogni volta che il client effettua una richiesta al server, il cookie contenente le informazioni della sessione viene inviato insieme alla richiesta. Sebbene questo metodo possa sembrare semplice e immediato, presenta alcune limitazioni, tra cui il fatto che i dati sensibili sono visibili a chiunque, siccome la crittografia usata per il cookie non garantisce la confidenzialità dei dati al suo interno, ma solo la sua integrità.
+La gestione delle sessioni è un aspetto cruciale nello sviluppo di applicazioni web, e la scelta del metodo di memorizzazione delle sessioni può influenzare significativamente la sicurezza e le prestazioni dell'applicazione. Di default, Flask utilizza esclusivamente sessioni \emph{client-side}, il che significa che i dati della sessione vengono memorizzati direttamente nei cookie del browser dell'utente. Questo approccio comporta che ogni volta che il client effettua una richiesta al server, il cookie contenente le informazioni della sessione viene inviato insieme alla richiesta. Sebbene questo metodo possa sembrare semplice e immediato, presenta alcune limitazioni, tra cui il fatto che i dati di sessione sono visibili a chiunque, siccome la crittografia usata per il cookie non garantisce la confidenzialità dei dati al suo interno, ma solo la sua integrità.
 
 Per superare queste limitazioni, si è deciso per l'uso di \texttt{flask-session}, una libreria che consente a Flask di gestire sessioni \emph{server-side}. Con le sessioni server-side, i dati della sessione vengono memorizzati sul server, mentre il client riceve nel cookie solamente un identificatore univoco della sessione. Questo approccio offre numerosi vantaggi in termini di sicurezza, poiché i dati sensibili non vengono mai esposti al client. Inoltre, consente una gestione più efficiente delle sessioni, poiché il server può mantenere lo stato dell'utente senza dover inviare continuamente informazioni sensibili attraverso la rete.
-Rimane comunque necessario difendersi da attacchi come la \textbf{Session Fixation}; questa parte è approfondita in \ref{session-fixation}.
+Rimane comunque necessario difendersi da attacchi come la \textbf{Session Fixation} \cite{flask-session}.
 
-Per implementare le sessioni \emph{server-side} di Flask Session, si è deciso per l'uso di \textbf{Redis}, un sistema di archiviazione in memoria, strutturato come un database chiave-valore, noto per la sua velocità e leggerezza. È particolarmente adatto per la gestione delle sessioni o di piccole \emph{cache}, poiché consente un accesso rapido e scalabile ai dati memorizzati. Inoltre, Redis è ampiamente supportato dalla libreria scelta ed è attivamente sviluppato, il che scongiura rischi di integrazione.
+Per implementare le sessioni \emph{server-side} di Flask Session, si è deciso per l'uso di \textbf{Redis} \cite{redis}, un sistema di archiviazione in memoria, strutturato come un database chiave-valore, noto per la sua velocità e leggerezza. È particolarmente adatto per la gestione delle sessioni o di piccole \emph{cache}, poiché consente un accesso rapido e scalabile ai dati memorizzati. Inoltre, Redis è ampiamente supportato dalla libreria scelta ed è attivamente sviluppato, il che scongiura rischi di integrazione.
 
 \subsection{CORS e DotEnv}
 Durante lo sviluppo locale dell'applicazione, è emersa la necessità di gestire le richieste in regime di \textbf{Cross-Origin Resource Sharing (CORS)}. CORS è un meccanismo di sicurezza implementato nei browser che consente o limita le richieste effettuate da un'origine (domain) a un'altra. Questo è particolarmente rilevante quando si sviluppano applicazioni web che interagiscono con API o risorse ospitate su domini diversi, e negli ambienti di sviluppo è comune. Senza una corretta configurazione di CORS, il browser bloccherebbe automaticamente le richieste provenienti da origini non autorizzate, impedendo così il corretto funzionamento dell'applicazione. Per affrontare questa problematica, è stata utilizzata un'estensione di Flask specificamente progettata per gestire CORS (\texttt{Flask-CORS}), che consente di configurare facilmente le politiche di accesso e di specificare quali origini sono autorizzate a interagire con l'API.
 
-In aggiunta alla gestione di CORS, è fondamentale considerare che molte funzionalità dell'applicazione possono variare a seconda dell'ambiente in cui si trova (come CORS stesso; come si vedrà nell'installazione finale dettagliata in \ref{deployment} non sarà necessario usarlo). Ad esempio, alcune funzionalità potrebbero essere attivate in fase di sviluppo, ma disattivate in produzione per motivi di sicurezza o prestazioni. Per gestire in modo efficace queste configurazioni environment-dependent, è stato adottato lo standard \textbf{DotEnv}. DotEnv è una convenzione per la gestione delle variabili di ambiente, che consente di definire configurazioni specifiche per ciascun ambiente in file di testo semplici, solitamente denominati \texttt{.env}. Questi file contengono coppie chiave-valore che possono essere facilmente lette dall'applicazione al momento dell'avvio.
+In aggiunta alla gestione di CORS, è fondamentale considerare che molte funzionalità dell'applicazione possono variare a seconda dell'ambiente in cui si trova (come CORS stesso; come si vedrà nell'installazione finale dettagliata in \ref{compose-architecture} non sarà necessario usarlo). Ad esempio, alcune funzionalità potrebbero essere attivate in fase di sviluppo, ma disattivate in produzione per motivi di sicurezza o prestazioni. Per gestire in modo efficace queste configurazioni environment-dependent, è stato adottato lo standard \textbf{DotEnv}, ovvero uno dei modi più popolari per realizzare i principi di una cosiddetta applicazione a 12 fattori \cite{12-factor}. DotEnv è una convenzione per la gestione delle variabili di ambiente, che consente di definire configurazioni specifiche per ciascun ambiente in file di testo semplici, solitamente denominati \texttt{.env}. Questi file contengono coppie chiave-valore che possono essere facilmente lette dall'applicazione al momento dell'avvio.
 
 L'integrazione di DotEnv con Flask è facilitata da un'altra estensione, \texttt{Flask-DotEnv}, che consente di caricare automaticamente le variabili di ambiente definite nel file .env all'interno dell'applicazione. Questo approccio non solo semplifica la gestione delle configurazioni, ma migliora anche la sicurezza, poiché consente di mantenere informazioni sensibili, come chiavi API e credenziali di accesso, al di fuori del codice sorgente (i file .env non sono mai aggiunti al sistema di controllo della versione, ma solo una loro versione di esempio, nel caso specifico denominata \texttt{.env.example}). In questo modo, è possibile evitare di esporre dati sensibili in repository pubblici o in ambienti di sviluppo condivisi.
 
@@ -156,7 +177,7 @@ L'integrazione di DotEnv con Flask è facilitata da un'altra estensione, \texttt
 Una \textbf{SPA (Single Page Application)} è un tipo di applicazione web che carica una singola pagina HTML e aggiorna dinamicamente il contenuto in risposta alle interazioni dell'utente, senza la necessità di ricaricare l'intera pagina. Questo approccio migliora notevolmente l'esperienza utente, poiché consente transizioni più fluide e tempi di risposta più rapidi, rendendo l'applicazione più reattiva e simile a un'applicazione desktop, cosa desiderata per il progetto in questione.
 
 \subsection{Scelta tra SPA e rendering ibrido}
-In alternativa alla scelta di sviluppare una SPA, si sarebbe potuto considerare un approccio di rendering ibrido, come quello offerto da Inertia.js o librerie simili. Questo tipo di soluzione consente di combinare le caratteristiche delle applicazioni tradizionali con quelle delle SPA, permettendo di costruire interfacce utente moderne senza dover gestire un'API REST separata. Tuttavia, è importante notare che, attualmente, non esistono librerie ben supportate per Flask che offrano un'integrazione simile a quella di Inertia.js, limitando così le opzioni disponibili per implementare questo approccio.
+In alternativa alla scelta di sviluppare una SPA, si sarebbe potuto considerare un approccio di rendering ibrido, come quello offerto da Inertia.js o librerie simili. Questo tipo di soluzione consente di combinare le caratteristiche delle applicazioni tradizionali con quelle delle SPA, permettendo di costruire interfacce utente moderne senza dover gestire un'API REST separata. Tuttavia, è importante notare che, attualmente, non esistono librerie ben supportate per Flask che offrano un'integrazione simile a quella di Inertia.js con Laravel, limitando così le opzioni disponibili per implementare questo approccio.
 
 Un ulteriore aspetto da considerare è che l'adozione di un rendering ibrido tenderebbe a riconnettere le componenti dell'applicazione, accoppiando di fatto la SPA e la REST API in un'unica architettura monolitica. Questo contrasta con l'obiettivo iniziale del progetto, che era quello di disaccoppiare il frontend dal backend, consentendo una maggiore flessibilità e scalabilità. La separazione delle preoccupazioni tra client e server è fondamentale per garantire che ciascuna parte dell'applicazione possa evolversi indipendentemente, facilitando aggiornamenti e manutenzione senza influenzare l'altra componente.
 
@@ -180,14 +201,20 @@ Tutti questi framework servono allo scopo di costruire interfacce utente nel mod
     \item \textbf{Supporto per i test}: Angular, React e Vue offrono strumenti e librerie per facilitare il testing delle applicazioni, consentendo agli sviluppatori di scrivere unit test o feature test (spesso detti test End-to-End o E2E in quest'ambito) per garantire la qualità del codice e il corretto funzionamento delle funzionalità.
 \end{itemize}
 
-Dopo un'attenta valutazione, è stato scelto \textbf{Vue.js} soprattutto per la sua facilità e intuitività, riconosciuto che in ultima analisi questi framework sono molto simili tra loro in termini di funzionalità e le preferenze sono spesso soggettive e legate agli stili di programmazione più congeniali ad uno sviluppatore piuttosto che ad un altro.
+Dopo un'attenta valutazione, è stato scelto \textbf{Vue.js} \cite{vue} soprattutto per la sua facilità e intuitività, riconosciuto che in ultima analisi questi framework sono molto simili tra loro in termini di funzionalità e le preferenze sono spesso soggettive e legate agli stili di programmazione più congeniali ad uno sviluppatore piuttosto che ad un altro.
 
-Una funzionalità chiave introdotta con Vue.js 3 è la composition API...
-
-Funzione di setup...
+Alcune caratteristiche chiave e peculiari del framework Vue sono:
+\begin{itemize}
+    \item \textbf{Single File Component (SFC)}: Vue privilegia un pattern di sviluppo basato sull'uso di componenti atomici che includono in un solo posto HTML, JavaScript e CSS. L'introduzione di un passaggio di \emph{bundling} (con Webpack o Vite) consente anche di introdurre linguaggi basati su preprocessori o \emph{transpiled}, come TypeScript, SASS, PostCSS o altro ancora.
+    \item \textbf{Proprietà computate}: Vue consente di definire facilmente proprietà reattive il cui valore dipende da altri valori nello scope del componente.
+    \item \textbf{Sistema di transizioni}: Vue include un sistema automatico di transizioni per animare tramite CSS la comparsa / scomparsa di componenti governata dalle sue direttive.
+    \item \textbf{Slot}: Vue implementa una tecnica di sviluppo facilitata che consente di personalizzare i propri componenti non sono con dati primitivi ma anche con pezzi di HTML vero e proprio, eventualmente ulteriormente personalizzabili con ulteriori dati primitivi di corredo (\emph{scoped slots}). Questa potente tecnica facilita la creazione di componenti estremamente riutilizzabili e snelli, quindi facili da manutenere.
+    \item \textbf{Composition API}: da Vue 3 il framework è passato ufficialmente ad una riorganizzazione della logica interna dei componenti, che è ora molto più libera e flessibile, avvenendo per la maggior parte nella cosiddetta funzione di \emph{setup}, eseguita prima che il componente sia creato.
+    \item \textbf{Composable}: i \emph{composable} sono una delle caratteristiche chiave della Composition API in Vue 3. Si riferiscono a funzioni riutilizzabili che incapsulano logica reattiva e possono essere utilizzate per condividere comportamenti tra componenti (spesso e volentieri contengono anche uno stato reattivo, distinguendosi da semplici classi statiche di utilità come nei linguaggi OOP). I composable permettono di organizzare e riutilizzare la logica del componente in modo più modulare e chiaro.
+\end{itemize}
 
 \subsection{Meta-framework}
-Per massimizzare le potenzialità di Vue.js, è stata adottato anche \textbf{Nuxt.js}, un \emph{meta-framework} costruito sopra Vue.js. Nuxt.js offre una serie di funzionalità avanzate che ampliano le capacità di Vue, rendendo lo sviluppo di SPA ancora più efficiente e strutturato, automatizzando molti dei compiti più comuni e offrendo tutta una serie di comodità per lo sviluppatore:
+Per massimizzare le potenzialità di Vue.js, è stata adottato anche \textbf{Nuxt.js} \cite{nuxt}, un \emph{meta-framework} costruito sopra Vue.js. Nuxt.js offre una serie di funzionalità avanzate che ampliano le capacità di Vue, rendendo lo sviluppo di SPA ancora più efficiente e strutturato, automatizzando molti dei compiti più comuni e offrendo tutta una serie di comodità per lo sviluppatore:
 \begin{itemize}
     \item La funzionalità più popolare di Nuxt è il \textbf{Server-Side Rendering (SSR)}, grazie al quale l'applicazione può essere generata lato server prima di essere inviata al client che la richiede. Questo è reso possibile grazie all'introduzione di un piccolo componente server (nel caso di Nuxt, un piccolo server Node creato al momento del deployment), che si occupa di generare le pagine complete lato server renderizzando il codice JavaScript in remoto, lasciando al client solo il compito di idratare i pochi contenuti di sua competenza.
     
@@ -204,7 +231,7 @@ Si è scelto per la gerarchia a tre livelli \ref{3-level}, lasciando la gerarchi
 
 \section{Docker}
 \label{docker}
-Docker è una piattaforma open-source che consente di automatizzare il deployment di applicazioni all'interno di \textbf{container}. Questa tecnologia è stata usata per l'installazione e pertanto ora segue una spiegazione del suo funzionamento.
+\textbf{Docker} \cite{docker} è una piattaforma open-source che consente di automatizzare il deployment di applicazioni all'interno di \textbf{container}. Questa tecnologia è stata usata per l'installazione e pertanto ora segue una spiegazione del suo funzionamento.
 
 \subsection{Container}
 I \textbf{container} sono ambienti leggeri e portabili che racchiudono tutto il necessario per eseguire un'applicazione, inclusi il codice, le librerie, le dipendenze e le configurazioni. Questo approccio consente di garantire che l'applicazione funzioni in modo coerente su diverse macchine e ambienti, riducendo i problemi legati alle differenze di configurazione.
@@ -233,6 +260,6 @@ Da questo segue anche è facile aggiornare o sostituire un'applicazione. Se è n
 
 \subsection{Docker Compose}
 \label{docker-compose}
-\textbf{Docker Compose} è uno strumento che consente di definire e gestire applicazioni multi-container in modo semplice e intuitivo. Si tratta dello strumento usato per gestire l'installazione di Greenbone basata sui container (come anticipato in \ref{greenbone-community-containers}), ma oramai è prassi usarlo per quasi ogni contesto applicativo, anche solo per cristallizzare su disco le configurazioni di avvio dei container.
+\textbf{Docker Compose} \cite{docker-compose} è uno strumento che consente di definire e gestire applicazioni multi-container in modo semplice e intuitivo. Si tratta dello strumento usato per gestire l'installazione di Greenbone basata sui container (come anticipato in \ref{greenbone-community-containers}), ma oramai è prassi usarlo per quasi ogni contesto applicativo, anche solo per cristallizzare su disco le configurazioni di avvio dei container.
 
 Infatti, Docker Compose usa dei file di configurazione in formato YAML con cui gli sviluppatori possono specificare i vari servizi, reti e volumi necessari per l'applicazione, semplificando così il processo di deployment e gestione, che rimane fissato su disco per usi futuri. Il file di configurazione consente di definire un numero variabile di servizi e le interconnessioni tra di essi, mantenendo un livello molto alto di gestione (si può parlare di \emph{IaC - Infrastructure as Code}).
