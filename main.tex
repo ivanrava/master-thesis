@@ -1,17 +1,25 @@
 \documentclass{report}
 \usepackage[utf8]{inputenc}
 \usepackage[italian]{babel}
+\usepackage{csquotes}
 \usepackage{geometry}
 \usepackage{graphicx}
 \usepackage[hidelinks]{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{inconsolata}
 
 \usepackage[style=alphabetic]{biblatex}
 \addbibresource{sources.bib}
+
+\renewcommand\lstlistingname{Codice}
+\renewcommand\lstlistlistingname{Elenco dei frammenti di codice}
 
 \begin{document}
     \input{chapters/frontpage}
     \tableofcontents
     \listoffigures
+    \lstlistoflistings
     \chapter{Introduzione}
     \input{chapters/1.introduction}
     \chapter{Analisi}

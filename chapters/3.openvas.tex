@@ -183,14 +183,3 @@ GMP, un dialetto XML personalizzato, funziona attraverso un processo di richiest
 
     \item \texttt{gvm-tools} \cite{gvm-tools}: uno strumento pensato per gli amministratori di sistema che desiderano gestire OpenVAS da linea di comando, automatizzando operazioni comuni. Questo strumento si basa su \texttt{python-gvm}, agendo come un \emph{wrapper} per la libreria.
 \end{itemize}
-
-\section{Motivazioni alla base della scelta}
-I principali fattori che motivano la scelta di OpenVAS come backend di scansione del progetto includono:
-
-\begin{itemize}
-    \item \textbf{Disponibilità di una versione gratuita}: OpenVAS offre una soluzione senza costi di licenza, permettendo all'azienda di occuparsi solo della predisposizione e manutenzione dell'hardware necessario. Tuttavia, è importante notare che la versione gratuita non include tutti i test di sicurezza disponibili, rendendo necessaria una valutazione aggiuntiva per determinare se i dati forniti siano in linea con il \emph{threat model} dell'azienda.
-    
-    \item \textbf{Open source}: OpenVAS è un progetto open source, consentendo la visione e la verifica del codice sorgente. Questo riduce il rischio di utilizzare componenti non documentati o poco trasparenti.
-
-    \item \textbf{Librerie ufficiali}: Greenbone offre strumenti ufficiali che semplificano l'interazione con il sistema OpenVAS e implementano un ampio spettro di funzionalità del protocollo GMP.
-\end{itemize}

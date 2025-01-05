@@ -25,11 +25,65 @@ Tutto il codice è stato collocato all'interno di un package Python denominato \
     \item Infine, il package \texttt{models} contiene la definizione delle entità, organizzate in file separati, che rappresentano il modello dei dati indotto dal protocollo GMP. Per quanto verbosa in termini di numero di file, questa struttura consente di mantenere il codice ben organizzato e facilmente estensibile, facilitando l'aggiunta di nuove entità o modifiche a quelle esistenti.
 \end{itemize}
 
+\begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{img/packages.png}
+    \caption{Diagramma dei package del backend Flask}
+\end{figure}
+
 \subsection{File di inizializzazione}
 I file \texttt{\_\_init\_\_.py} di alcuni di questi package sono stati utilizzati in modo peculiare per ottimizzare la configurazione dell'applicazione:
 \begin{itemize}
     \item Nel package principale \texttt{gvmrest} il file di \emph{init} implementa un'\emph{application factory} (o \emph{factory function}), un design pattern comune nei progetti Flask.
+
+\begin{lstlisting}[caption={Application factory}]
+def create_app():
+    app = APIFlask(__name__)
+    env = DotEnv(app)
+    env.init_app(app)
+    app.security_schemes = {
+        'cookie': {
+            'type': 'apiKey',
+            'in': 'cookie',
+            'name': 'session'
+        }
+    }
+    app.config.from_mapping(
+        SESSION_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Strict'
+    )
+
+    setup_server_side_sessions(app)
+
+    from gvmrest import blueprints
+    blueprints.register_into(app)
+
+    CSRFProtect(app)
+
+    setup_cors(app)
+
+    return app
+\end{lstlisting}
+
     \item Nel package di secondo livello, \texttt{blueprints}, l'inizializzazione contiene una funzione dedicata alla registrazione di tutti i Blueprint Flask contenuti nel package. Questo approccio consente all'\emph{application factory} di richiamare semplicemente questa funzione, evitando la necessità di enumerare singolarmente tutti i blueprint.
+
+\begin{lstlisting}[caption={Registrazione dei blueprint}]
+API_PREFIX = '/api'
+
+def register_into(app: APIFlask):
+    from .auth import bp, login_manager
+    app.register_blueprint(bp, url_prefix=API_PREFIX + bp.url_prefix)
+    login_manager.init_app(app)
+    
+    from .configs import bp
+    app.register_blueprint(bp, url_prefix=API_PREFIX + bp.url_prefix)
+    
+    from .scanners import bp
+    app.register_blueprint(bp, url_prefix=API_PREFIX + bp.url_prefix)
+
+    ...
+\end{lstlisting}
     
     In questo modo, il punto di variabilità si concentra esclusivamente nel file \texttt{\_\_init\_\_.py} del package, semplificando la manutenibilità e rendendo più agevole l'aggiunta o la rimozione di blueprint in futuro.
 \end{itemize}
@@ -39,7 +93,7 @@ L'uso di APIFlask implica la necessità di usare i Blueprint forniti dalla libre
 
 Per strutturare ancora di più il codice, si è cercato di fornire un'architettura similare a tutti i Blueprint dedicati a compiti simili. Infatti, quasi tutti i blueprint effettuano le classiche operazioni CRUD\footnote{Create, Read, Update, Delete: ovvero creare una risorsa, leggere una risorsa, aggiornare una risorsa, cancellare una risorsa} con vari gradi di completezza.
 
-Flask mette a disposizione la classe \emph{MethodView} proprio per questo caso. Si tratta di una classe che consente di gestire più metodi HTTP (ad esempio GET, POST, PUT, DELETE) all'interno di una singola classe. Ciò consente di organizzare il codice in modo più pulito e facile da mantenere.
+Flask mette a disposizione la classe \texttt{MethodView} proprio per questo caso. Si tratta di una classe che consente di gestire più metodi HTTP (ad esempio GET, POST, PUT, DELETE) all'interno di una singola classe. Ciò consente di organizzare il codice in modo più pulito e facile da mantenere.
 
 Le MethodView sono utili quando si desidera gestire più azioni su una stessa risorsa in modo semantico (caratteristica chiave delle REST API), ad esempio:
 \begin{itemize}
@@ -49,12 +103,106 @@ Le MethodView sono utili quando si desidera gestire più azioni su una stessa ri
     \item Gestire una richiesta DELETE per eliminare una risorsa
 \end{itemize}
 
+\begin{lstlisting}[caption={Blueprint API e MethodView con decoratori comuni}, basicstyle=\ttfamily\footnotesize\color{one-text}]
+bp = APIBlueprint('users', __name__, url_prefix='/users')
+
+class Users(MethodView):
+    decorators = [login_required, bp.doc(security='cookie')]
+    
+    @bp.input(PaginatedUsersQuery, location='query')
+    @bp.output(PaginatedUsers)
+    def get(self, query_data: dict):
+        data, total, pages = models.User.paginate(
+            page=query_data['page'],
+            filter_string='',
+            sort=query_data['sort'],
+            direction=query_data['direction']
+        )
+    
+        return {
+            'total': total,
+            'page': query_data['page'],
+            'pages': pages,
+            'data': data
+        }
+    
+    @bp.input(UserStoreRequest, arg_name='user')
+    @bp.output(UserSchema, status_code=201)
+    def post(self, user: dict):
+        try:
+            return models.User.create(user).__dict__, 201
+        except GvmResponseError as e:
+            return {
+                'message': e.message
+            }, int(e.status)
+    
+    
+class User(MethodView):
+    decorators = [login_required, bp.doc(security='cookie')]
+    
+    @bp.output(UserSchema)
+    def get(self, user_uuid):
+        try:
+            return models.User.find(user_uuid).with_tasks()
+        except GvmResponseError as e:
+            return {'message': e.message}, int(e.status)
+    
+    @bp.output(ErrorMessageResponse, status_code=204)
+    @bp.doc(responses=[404])
+    def delete(self, user_uuid):
+        try:
+            models.User.delete(user_id=user_uuid)
+            return '', 204
+        except GvmResponseError as e:
+            return {'message': e.message}, int(e.status)
+
+
+bp.add_url_rule('', view_func=Users.as_view('users'))
+bp.add_url_rule('/<uuid:user_uuid>', view_func=User.as_view('user'))
+\end{lstlisting}
+
 Le MethodView consentono anche di applicare globalmente i decoratori Python, definendoli come attributi d'istanza. Nel caso specifico, le nostre MethodView sono definite con i decoratori di Flask-Login, rendendo tutte le viste automaticamente protette dall'accesso non precedentemente autorizzato. Inoltre, con un ulteriore decoratore proprio di APIFlask è possibile segnalare le viste come protette dall'autenticazione, ottenendo questa informazione durante la generazione automatica della documentazione interattiva.
 
 \subsection{Schemi Marshmallow}
 Dalla scelta di utilizzare il meta-framework di APIFlask deriva anche la scelta obbligata della libreria di gestione degli schemi dei dati: Marshmallow (invece di Pydantic). APIFlask supporta di fatto solo Marshmallow, il che ha reso questa libreria una scelta naturale, anticipata già in \ref{design-marshmallow}.
 
 Marshmallow si integra facilmente con Flask tramite appositi plugin, ma APIFlask offre una serie di automazioni che semplificano la validazione degli schemi in input (JSON) e l'auto-formattazione delle entità restituite in JSON. Queste automazioni includono il filtraggio e il parsing degli attributi sia in input che in output, permettendo conversioni basilari e avanzate, con la possibilità di utilizzare callback e hook astratti offerti dalle classi base di Marshmallow e personalizzabili nelle singole classi di schema attraverso override.
+
+\begin{lstlisting}[caption={Esempio di schema Marshmallow con validazione},basicstyle=\ttfamily\footnotesize\color{one-text}]
+def unique_username(username: str):
+    response = g.gmp.get_users(filter_string=f'name={username}')
+    if response.find('user') is not None:
+        raise ValidationError('Username already exists')
+
+
+class UserStoreRequest(Schema):
+    name = fields.String(
+        required=True,
+        validate=[
+            validators.Length(min=1, error='Please supply a name'),
+            unique_username
+        ]
+    )
+    password = fields.String(
+        required=True,
+        validate=validators.Length(min=1, error='Please supply a password')
+    )
+    role = fields.String(
+        required=True,
+        validate=validators.OneOf(['user', 'tenant'])
+    )
+    quota_id = fields.UUID(required=True)
+    hosts = fields.String(load_default='',
+                          example='192.168.1.42,192.168.1.200-220,a.com',
+                          validate=validate_hosts_specification)
+    hosts_allow = fields.Boolean(default=False)
+
+    @post_load
+    def split_hosts(self, data, **kwargs):
+        data['hosts'] = [host for host in data['hosts'].split(',') if host != '']
+        data['role'] = current_app.config.get(f"ROLE_{data['role'].upper()}")
+        return data
+\end{lstlisting}
 
 Tuttavia, a differenza di Pydantic, Marshmallow non consente di utilizzare direttamente i tipi nativi di Python, ma richiede l'uso di classi wrapper specifiche della libreria. Questo introduce un certo livello di astrazione indesiderata, anche se i vantaggi dall'uso di Marshmallow superano gli svantaggi che porta il non usare una libreria di questo tipo.
 
@@ -81,18 +229,94 @@ Questo documento XML ritornato dalla libreria è già un oggetto Python (un'ista
 
 Ogni classe dell'ORM agisce nel medesimo modo: il costruttore della classe modello estrae il contenuto del documento XML utilizzando semplici query ai tag del documento (con l'API di \texttt{lxml}), sfruttando metodi nativi o interfacce XPath\footnote{XPath è un linguaggio di query avanzato utilizzato per navigare attraverso gli elementi e gli attributi di un documento XML, secondo logiche complesse e permettendo di selezionare nodi specifici in modo altamente flessibile ed efficiente.}.
 
+\begin{lstlisting}[caption={Destrutturazione dal documento XML a Python}]
+class User(Authenticable):
+    id: uuid.UUID
+    name: str
+    role_id: uuid.UUID
+    role: str
+    comment: str
+    created: str
+    owner: str
+    hosts: dict
+    quota: dict
+    tags: list[Tag]
+    in_use: bool
+
+    def __init__(self, get_users_response: etree.Element):
+        self.tasks = []
+        user_tag = get_users_response.find('user')
+        self.id = user_tag.attrib['id']
+        self.name = user_tag.find('name').text
+        self.role_id = user_tag.find('role').attrib['id']
+        self.role = self._role_human(self.role_id)
+        self.comment = user_tag.find('comment').text
+        self.created = user_tag.find('creation_time').text
+        self.owner = user_tag.find('owner/name').text
+        self.hosts = {
+            'allow': not bool(int(user_tag.find('hosts').attrib['allow'])),
+            'exclusions': user_tag.find('hosts').text
+        }
+        self.in_use = bool(int(user_tag.find('in_use').text))
+
+        tags = get_users_response.find('user/user_tags')
+        tags = [] if tags is None else tags.xpath('tag')
+        self.tags = [Tag(tag) for tag in tags]
+
+        self.quota = self.get_month_quota()
+    
+    ...
+\end{lstlisting}
+
 Questa procedura consente di realizzare una prima traduzione da XML a un oggetto Python specifico per l'entità rappresentata (\texttt{Task}, \texttt{Report}, eccetera). A questo punto, ogni classe può offrire metodi specifici che astraggono l'interazione con le altre entità e, indirettamente, con il database. Di fatto si crea un ORM, ma astraendo qualcosa di più specialistico rispetto al più comune caso di un database SQL direttamente controllato da noi.
 
 In questo modo, i controller (blueprint nel nostro caso) rimangono snelli e focalizzati, mentre il codice di basso livello e l'accesso ai dati sono segregati nei modelli e organizzati in metodi separati. Questo approccio per quanto inusuale aumenta la coerenza e riduce l'accoppiamento, migliorando in modo decisivo la manutenibilità e la chiarezza del codice. Non solo, la separazione del codice di accesso ai dati in metodi distanti favorisce e incoraggia anche un riuso del codice che non sarebbe altresì possibile.
 
 \subsection{API generica / paginazione}
-Nell'implementazione dell'ORM, sono stati creati metodi generici per facilitare la frequente interazione con le entità restituite dall'API GMP. Poiché queste entità sono quasi sempre restituite paginate in partenza, è fondamentale gestire la paginazione a livello di superclasse.
+Nell'implementazione dell'ORM, sono stati creati metodi generici per facilitare la frequente interazione con le entità restituite dalla API GMP. Poiché queste entità sono quasi sempre restituite paginate in partenza, è fondamentale gestire la paginazione a livello di superclasse.
 
 La classe \texttt{Model}, che funge da superclasse per tutte le classi di modello, implementa due metodi principali per l'interazione con il database:
 \begin{itemize}
     \item \texttt{all()}: questo metodo restituisce tutti i record di un determinato modello, ``paginati'' di default, insieme al numero totale di record disponibili (non solo quelli nella pagina corrente). \texttt{all()} accetta anche una \texttt{filter\_string} definita in Powerfilter, che gestisce effettivamente la paginazione. È decorato come \texttt{@abstractmethod}, il che significa che l'implementazione specifica deve essere fornita dalle sottoclassi concrete. Tuttavia, l'idea è che \texttt{all()} non venga utilizzato direttamente, ma solo attraverso l'altro metodo di questa classe.
     \item \texttt{paginate()}: Questo metodo concreto riceve tutti i parametri relativi alla paginazione, come il numero di pagina, il numero di oggetti per pagina, l'ordinamento (ascendente o discendente e su quale attributo) e il filtraggio (gestito tramite una \texttt{filter\_string} in Powerfilter). \texttt{paginate()} esegue i calcoli necessari per determinare la pagina e costruisce una nuova \texttt{filter\_string} decorando quella iniziale con i valori necessari per gestire la paginazione. Questa \texttt{filter\_string} viene poi passata a \texttt{all()}, che recupera i record appropriati. Il metodo \texttt{paginate()} restituisce quindi i record paginati, insieme a informazioni utili per il frontend, come il numero totale di pagine e il numero totale di record.
 \end{itemize}
+
+\begin{lstlisting}[caption={Modello base dell'ORM}]
+class Model:
+    def __repr__(self):
+        import pprint
+        return pprint.pformat(self.__dict__)
+
+    @classmethod
+    def paginate(cls,
+                 page: int,
+                 filter_string: str,
+                 rows: int = 20,
+                 sort: str = None,
+                 direction: str = 'asc'
+                 ) -> tuple[list['Model'], int, int]:
+
+        first = (page - 1) * rows + 1
+
+        sort_kw = 'sort' if direction == 'asc' else 'sort-reverse'
+        sort_query = None if sort is None else f'{sort_kw}={sort}'
+        filter_string = filter_string + f" first={first} rows={rows} " + sort_query
+
+        models, total = cls.all(filter_string=filter_string)
+
+        pages = math.ceil(total / rows)
+
+        return (
+            models,
+            total,
+            pages
+        )
+
+    @classmethod
+    @abstractmethod
+    def all(cls, filter_string: str) -> tuple[list['Model'], int]:
+        pass
+\end{lstlisting}
 
 Inoltre, la classe \texttt{Model} implementa anche il \emph{magic method} \texttt{\_\_repr\_\_()}, fornendo un'implementazione di default per la stampa in ambiente CLI. In particolare, l'implementazione usa \texttt{pprint} per stampare la rappresentazione interna a dizionario dell'oggetto, risultando particolarmente utile durante il debug o i test.
 
@@ -109,9 +333,7 @@ In generale, le classi concrete che rappresentano i modelli sono simili a una \e
 Quando gli oggetti devono essere restituiti nella risposta della API, questi vengono semplicemente restituiti così come sono, senza nessuna particolare operazione. La presenza dei valori negli attributi della classe e lo schema Marshmallow fa sì che il processo di serializzazione sia assolutamente automatico, con lo schema Marshmallow che specifica cosa viene fatto passare della classe e secondo quale formato\footnote{Si noti che lo standard JSON non supporta numeri decimali, che vengono quindi restituiti come stringhe di caratteri. La conversione verrà gestita dal frontend.}.
 
 \section{Quality of Detection}
-Il valore di \textbf{Quality of Detection (QoD)}, come viene chiamato da OpenVAS, è un intero compreso tra 0 e 100 che indica la percentuale di affidabilità del risultato della scansione, dove 100\% indica la certezza. Greenbone OpenVAS consente di usare questo numero per filtrare e comprendere meglio i risultati ottenuti.
-
-Pur essendo un attributo specifico di OpenVAS si è voluto inserire comunque il QoD nell'interfaccia dell'API, anticipando un eventuale parametro generico che identifichi l'affidabilità dei risultati, indipendente dal backend di scansione.
+Pur essendo un attributo specifico di OpenVAS si è voluto inserire comunque il QoD (già descritto precedentemente in \ref{qod}) nell'interfaccia dell'API, anticipando un eventuale parametro generico che identifichi l'affidabilità dei risultati, indipendente dal backend di scansione.
 
 Questo parametro viene fornito all'API in tutte le richieste di risorse con paginazione, che di fatto sono le uniche che possono usare il valore di QoD per filtrare i risultati.
 
@@ -119,7 +341,7 @@ Questo parametro viene fornito all'API in tutte le richieste di risorse con pagi
 Le schedule sono gestite internamente da OpenVAS come delle stringhe in formato iCalendar, più alcuni metadati usati per la loro identificazione.
 
 \subsection{iCalendar}
-\textbf{iCalendar} è un formato standard per la rappresentazione di informazioni relative a eventi, appuntamenti e attività. È utilizzato per scambiare dati di calendario tra diverse applicazioni e servizi. Il formato è definito nella specifica RFC 5545 e consente di creare file con estensione \texttt{.ics}, che possono contenere dettagli come:
+\textbf{iCalendar} è un formato standard per la rappresentazione di informazioni relative a eventi, appuntamenti e attività. È utilizzato per scambiare dati di calendario tra diverse applicazioni e servizi. Il formato è definito nella specifica RFC 5545 \cite{rfc5545} e consente di creare file con estensione \texttt{.ics}, che possono contenere dettagli come:
 \begin{itemize}
     \item Data e ora di inizio e fine di un evento
     \item Fuso orario
@@ -140,6 +362,18 @@ Per quanto riguarda il caso in esame, OpenVAS si serve di questo formato esclusi
 
 L'uso di un formato standard ovviamente semplifica lo sviluppo poiché ci si può appoggiare a librerie che automatizzano il processo di parsing e generazione di stringhe aderenti al formato iCalendar. Addirittura la documentazione stessa di \texttt{python-gvm} suggerisce l'uso della libreria \texttt{icalendar} di Python, e così si è fatto nel progetto in esame.
 
+\begin{lstlisting}[caption={Uso di icalendar}]
+icaltext = schedule_xml.find('icalendar').text
+cal = Calendar()
+self._ical = cal.from_ical(icaltext)
+subcomp = self._ical.subcomponents[1]
+dt_from: datetime.datetime = subcomp['dtstart'].dt
+self.start = dt_from.isoformat()
+self.duration = subcomp['duration'].dt.total_seconds()
+self.dtstamp = subcomp['dtstamp'].dt.isoformat()
+self.freq = subcomp['rrule']['freq'][0] if 'rrule' in subcomp else 'ONCE'
+\end{lstlisting}
+
 L'uso dello standard iCalendar è tornato utile anche in fase di standardizzazione dell'interfaccia dei dati in uscita, mantenendo il formato delle \texttt{RRULE} di iCalendar per descrivere il tipo di ricorrenza delle schedule.
 
 \section{Autenticazione}
@@ -151,6 +385,18 @@ Flask-Login automatizza gran parte delle operazioni di login e logout, fornendo 
 Un aspetto fondamentale di Flask-Login è la necessità di fornire un metodo che restituisca l'oggetto utente corrispondente a un identificativo specifico. Questo metodo deve restituire l'oggetto utente se l'identificativo è valido, oppure None se non lo è. L'identificativo utilizzato è a discrezione del programmatore, così come la classe utente, purché vi sia coerenza interna nel sistema.
 
 Nel contesto di questo progetto, è stato scelto di utilizzare l'ID dell'utente fornito dall'API GMP come identificativo. Questo ID è un UUID, in linea con il formato utilizzato per tutte le altre risorse interne al sistema GVM. Per rappresentare l'utente, è stata utilizzata la classe di modello che corrisponde alla risorsa utente di GMP, garantendo così una gestione coerente e integrata delle informazioni relative agli utenti.
+
+\begin{lstlisting}[caption={User loader di Flask-Login}]
+login_manager = LoginManager()
+
+@login_manager.user_loader
+def load_user(user_id: str):
+    gmp = get_gmp()
+    if gmp is None:
+        return None
+    res = gmp.get_user(user_id)
+    return User(res)
+\end{lstlisting}
 
 \subsection{Autenticazione con l'API GMP}
 L'autenticazione dell'applicazione Flask con l'API sottostante di GMP ha rappresentato invece una sfida complessa e delicata, come quasi tutti i casi in cui un'applicazione deve interagire in modo sicuro con un sistema di terze parti che non è ben configurato in tal senso (ad esempio, supportando OAuth).
@@ -186,7 +432,25 @@ Per mitigare il più possibile questa soluzione si sono introdotti tutta una ser
 \end{itemize}
 
 \subsection{Proxying dell'API GMP}
-Flask supporta l'uso di un oggetto ``globale'' per tutta la durata della richiesta web, chiamato semplicemente \texttt{g}. Questo oggetto è usato per riferirsi alla connessione con l'API GMP (in un'applicazione web maggiormente classica conterrebbe probabilmente un riferimento alla connessione con il database SQL), usando un metodo \texttt{get\_gmp()}che di fatto implementa un design pattern di tipo \emph{Proxy}.
+Flask supporta l'uso di un oggetto ``globale'' per tutta la durata della richiesta web, chiamato semplicemente \texttt{g}. Questo oggetto è usato per riferirsi alla connessione con l'API GMP (in un'applicazione web maggiormente classica conterrebbe probabilmente un riferimento alla connessione con il database SQL), usando un metodo \texttt{get\_gmp()} che di fatto implementa un design pattern di tipo \emph{Proxy}.
+
+\begin{lstlisting}[caption={Metodo proxy per la connessione GMP}]
+def get_gmp() -> None | GMPv224[Any] | GMPv225[Any]:
+    if 'gmp' not in g:
+        g.gmp = Gmp(
+            connection=UnixSocketConnection(path=current_app.config.get('GVMD_SOCKFILE')),
+            transform=EtreeCheckCommandTransform()
+        ).__enter__()
+        try:
+            g.gmp.authenticate(
+                fernet.decrypt(session['name']).decode(),
+                fernet.decrypt(session['password']).decode()
+            )
+        except InvalidToken as _:
+            return None
+
+    return g.gmp
+\end{lstlisting}
 
 Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza di GMP è già presente, ovvero, se la connessione è stata già stabilita:
 \begin{itemize}
@@ -196,11 +460,40 @@ Nello specifico, quando questo metodo viene invocato esso verifica se l'istanza 
 
 Infine, quando il flusso di richiesta / risposta web si conclude l'istanza Flask chiude la connessione manualmente, siccome (come già detto precedentemente) non è possibile fare \emph{pooling} di queste connessioni per ottimizzare le risorse del server.
 
+\begin{lstlisting}[caption={Metodo di chiusura delle connessioni GMP}]
+def close_gmp(e=None):
+    gmp = g.pop('gmp', None)
+
+    if gmp is not None:
+        gmp.__exit__(None, None, None)
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Aggancio per chiudere le connessioni}]
+from .gmp import close_gmp
+app.teardown_appcontext(close_gmp)
+\end{lstlisting}
+
 \section{Quota di scansione}
 \subsection{Definizione del valore massimo}
 La quota di scansione come detto è stata gestita mediante il sistema di tagging interno a Greenbone. In particolare, ogni utente riceve un tag di nome \texttt{quota:total} con come valore il numero di scansioni massime consentite per ogni mese. Questo tag è specificato al momento della creazione dell'utente da parte dell'utenza di livello superiore.
 
 \subsection{Calcolo della quota consumata}
+
+\begin{lstlisting}[caption={Calcolo della quota consumata (ad alto livello)}]
+def get_consumed_quota(self, at: datetime):
+    next_month = at + relativedelta(months=1)
+
+    self.hosts_for_target = {}
+    targets, _ = Target.all(filter_string=f'owner={self.name}')
+    for target in targets:
+        self.hosts_for_target[target.id] = target.max_hosts
+
+    total_hosts = self.sum_past_reports_consumption(at, next_month)
+    total_hosts += self.sum_scheduled_tasks_consumption()
+
+    return total_hosts
+\end{lstlisting}
+
 La quota consumata è calcolata sommando i contributi di due parti:
 \begin{itemize}
     \item Le scansioni passate in questo mese, usando i report delle scansioni\footnote{Per tenere sotto controllo l'occupazione del disco i report sono cancellati a rotazione. Ovviamente, il valore di \emph{turnaround} è stato scelto in modo tale da non compromettere la correttezza del precedente calcolo.} per determinare il numero di host coinvolti ogni volta (che non dipende da quanti host fossero attivi o meno al momento della scansione).
@@ -231,11 +524,45 @@ La multi-tenancy è stata gestita usando il sistema dei ruoli nativo di Greenbon
 
     Inoltre, serve aggiungere i permessi per la lettura dei tag di quota.
 \end{itemize}
-I ruoli così definiti sono usati dal sistema per mezzo dei loro identificativi UUID, forniti tramite file \texttt{.env}.
+I ruoli così definiti sono usati dal sistema per mezzo dei loro identificativi UUID, forniti tramite il file \texttt{.env}.
 
-Al momento della creazione di un tenant, da parte del super amministratore viene anche creato un gruppo di tenancy denominato sulla base del tenant e in cui il tenant viene automaticamente inserito con permessi di tipo \emph{Super}\footnote{Ovvero, ha la facoltà di fare e vedere ogni cosa. Di fatto lo si rende un Super Admin localmente alle risorse del gruppo.} e \texttt{modify\_group}\footnote{Per aggiungere risorse al gruppo, come gli utenti che lui crea.}.
+Al momento della creazione di un tenant, da parte del super amministratore viene anche creato un gruppo di tenancy denominato sulla base del tenant e in cui il tenant viene automaticamente inserito con permessi di tipo \texttt{Super}\footnote{Ovvero, ha la facoltà di fare e vedere ogni cosa. Di fatto lo si rende un Super Admin localmente alle risorse del gruppo.} e \texttt{modify\_group}\footnote{Per aggiungere risorse al gruppo, come gli utenti che lui crea.}.
     
 Inoltre, tutti gli utenti inseriti nel gruppo possono bypassare i permessi di lettura degli utenti per vedere esclusivamente il proprio tenant. Questo è necessario per determinare il proprio gruppo di tenancy e il permesso viene automaticamente creato dal sistema in fase di creazione degli utenti di minor livello.
+
+\begin{lstlisting}[caption={Creazione del gruppo di tenancy e dei rispettivi permessi}]
+def _create_tenant_group(self):
+    group_name = self.get_tenant_group_name()
+    res_group = g.gmp.create_group(
+        name=group_name,
+        comment=f'Created automatically; do not edit manually.'
+    )
+    group_id = res_group.attrib['id']
+    g.gmp.create_permission(
+        name='get_users',
+        subject_id=group_id,
+        subject_type=PermissionSubjectType.GROUP,
+        resource_id=self.id,
+        resource_type=EntityType.USER,
+        comment=f'Created automatically; do not edit manually.'
+    )
+    g.gmp.create_permission(
+        name='Super',
+        subject_id=self.id,
+        subject_type=PermissionSubjectType.USER,
+        resource_id=group_id,
+        resource_type=EntityType.GROUP,
+        comment=f'Created automatically; do not edit manually.'
+    )
+    g.gmp.create_permission(
+        name='modify_group',
+        subject_id=self.id,
+        subject_type=PermissionSubjectType.USER,
+        resource_id=group_id,
+        resource_type=EntityType.GROUP,
+        comment=f'Created automatically; do not edit manually.'
+    )
+\end{lstlisting}
 
 \section{Utilità di testing}
 Durante lo sviluppo è stato necessario interagire più volte con l'API GMP per verificare le risposte restituite e testare interattivamente il parsing XML.
@@ -250,3 +577,22 @@ In questo caso è stato aggiunto un comando Click (chiamato semplicemente \textt
     \item Una connessione già stabilita e autenticata (se le credenziali sono fornite) con GMP.
     \item Una funzione\footnote{Python consente di definire funzioni locali ad altre funzioni. In questo modo la funzione è disponibile solo nel contesto interattivo creato da Click.} \texttt{pp()} per la stampa a schermo formattata dei documenti XML restituiti dalla API.
 \end{itemize}
+
+\begin{lstlisting}[caption={Comando utilizzato per interagire da CLI con l'API GMP}]
+@click.command("gmp")
+@click.argument('credentials', required=False)
+def test_command(credentials: str):
+    def pp(el):
+        print(etree.tostring(el, pretty_print=True).decode())
+
+    with Gmp(
+        connection=UnixSocketConnection(path=os.getenv('GVMD_SOCKFILE')),
+        transform=EtreeCheckCommandTransform()
+    ) as gmp:
+        if credentials is not None:
+            username, password = credentials.split(':')
+            gmp.authenticate(username, password)
+
+        import code
+        code.interact(local=locals())
+\end{lstlisting}
