@@ -1,5 +1,22 @@
-Il progetto realizzato per questo lavoro è stato realizzato dietro richiesta specifica di un'azienda di telecomunicazioni, e con il supporto della stessa durante tutte le fasi dello sviluppo per quanto riguarda l'erogazione dell'infrastruttura di produzione e la specifica dei requisiti. L'azienda ha anche avuto modo di verificare l'efficacia del prodotto in un collaudo; lo stesso è stato ritenuto valido già allo stato attuale e degno di commercializzazione, ma anche di futuri sviluppi più accorti.
+Il progetto realizzato per questo lavoro è stato realizzato dietro richiesta specifica di un'azienda di telecomunicazioni, e con il supporto della stessa durante tutte le fasi dello sviluppo per quanto riguarda l'erogazione dell'infrastruttura di produzione e la specifica dei requisiti. Tutto il lavoro di progettazione, codifica e installazione è stato invece svolto in totale autonomia dall'autore di questo documento.
 
 \section{Analisi del lavoro svolto}
+L'azienda ha avuto modo di verificare l'efficacia del prodotto sviluppata in un collaudo. In questa occasione il prodotto realizzato è stato ritenuto valido già allo stato attuale e degno di commercializzazione, ma anche di futuri sviluppi più accorti.
+
+Tra i principali punti di forza riscontrati rientrano:
+\begin{itemize}
+    \item L'interfaccia del frontend facilitata, moderna e accattivante rispetto a quella più grezza e spartana di GSA.
+    \item La separazione dei compiti realizzata tramite l'architettura a microservizi, che facilita l'eventuale integrazione futura integrazione futura con scanner diversi da OpenVAS.
+    \item La facilità d'uso e d'interpretazione dei risultati.
+\end{itemize}
 
 \section{Futuri sviluppi e miglioramenti}
+Il lavoro ha chiaramente evidenziato numerosi punti di miglioramento essendo di fatto solamente un solido prototipo, limitato nelle funzionalità sin dalle fasi di progettazione.
+
+Tra i principali punti di miglioramento rientra sicuramente la generalizzazione ulteriore del sistema. Infatti, nonostante la separazione dei compiti tramite i microservizi ci sono molte terminologie e agganci specifici con il sistema di OpenVAS (la QoD, i ruoli, i gruppi e i permessi). In generale, gran parte di questo accoppiamento indesiderato deriva dalla scelta semplificativa di volersi appoggiare al database di OpenVAS, evitando la complicazione di volersi creare un proprio DB e un proprio schema di dati. Questo come abbiamo visto ha portato ad un sistema funzionante ed anche efficace, ma poco flessibile nel caso in un futuro dovesse presentarsi l'esigenza o la convenienza a spostarsi ad un altro sistema di scansione.
+
+Inoltre, disaccoppiarsi dal database di OpenVAS consentirebbe di gestire quote e volumi di scansione in modo più idiomatico e proprio rispetto al dover sfruttare i tag di OpenVAS per ricreare funzionalità non previste dal framework di Greenbone con \emph{escamotage} che a qualcuno potrebbero apparire come ``hack''.
+
+Inoltre, i task creati al momento sono costretti a rispettare una schedule mensile, ma disaccoppiarsi dal database interno di Greenbone consentirebbe di pensare anche a schedule più diversificate e flessibili con maggior facilità.
+
+Un ulteriore punto di miglioramento è la gerarchia degli utenti. Infatti, allo stato attuale non sono stati approntati utenti in grado di consultare semplicemente i risultati, un ruolo che nella pratica è comune in molti contesti aziendali (dove un'amministratore di rete crea i task di scansione e una figura dirigenziale può solo controllare i risultati).

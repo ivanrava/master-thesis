@@ -8,12 +8,42 @@
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{inconsolata}
+\usepackage{minted}
+\usepackage{tcolorbox}
+\tcbuselibrary{minted,skins}
 
 \usepackage[style=alphabetic]{biblatex}
 \addbibresource{sources.bib}
 
 \renewcommand\lstlistingname{Codice}
 \renewcommand\lstlistlistingname{Elenco dei frammenti di codice}
+
+\newtcblisting{jscode}[1][]{
+  listing engine=minted,
+  colback=sol-background,
+  colframe=black!70,
+  listing only,
+  minted style=solarized-light,
+  minted language=TypeScript,
+  minted options={breaklines=true,escapeinside=||,linenos=true,numbersep=3mm,texcl=true,#1},
+  left=5mm,enhanced,
+  overlay={\begin{tcbclipinterior}\fill[sol-background!50] (frame.south west)
+            rectangle ([xshift=5mm]frame.north west);\end{tcbclipinterior}},
+  frame hidden,
+}
+\newtcblisting{vuesfc}[1][]{
+  listing engine=minted,
+  colback=sol-background,
+  colframe=black!70,
+  listing only,
+  minted style=solarized-light,
+  minted language=html,
+  minted options={breaklines=true,escapeinside=||,linenos=true,numbersep=3mm,texcl=true,#1},
+  left=5mm,enhanced,
+  overlay={\begin{tcbclipinterior}\fill[sol-background!50] (frame.south west)
+            rectangle ([xshift=5mm]frame.north west);\end{tcbclipinterior}},
+  frame hidden,
+}
 
 \begin{document}
     \input{chapters/frontpage}
@@ -28,6 +58,7 @@
     \input{chapters/3.openvas}
     \chapter{Progettazione}
     \input{chapters/4.design}
+    \lstset{style=backend, language=Python}
     \chapter{Sviluppo: backend}
     \input{chapters/5.backend}
     \chapter{Sviluppo: frontend}

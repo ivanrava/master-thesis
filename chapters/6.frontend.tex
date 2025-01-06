@@ -4,12 +4,12 @@ In cui si spiega nei dettagli lo sviluppo del frontend web facente veci di SPA.
 Per questo componente un pezzo chiave è il client API. Nuxt offre diversi pattern, architetture e librerie per lo scopo.
 
 \subsection{Prefisso}
-Il file di configurazione di Nuxt (\texttt{nuxt.config.ts}) consente di definire delle variabili e dei valori che vengono esposti all'intera applicazione.
+Il file di configurazione di Nuxt (\texttt{nuxt.config.ts} \cite{nuxt-config}) consente di definire delle variabili e dei valori che vengono esposti all'intera applicazione.
 Questi valori possono essere sovrascritti sulla base dei singoli ambienti (di sviluppo o produzione) mediante file \texttt{.env} appositi, rispettando lo standard DotEnv.
 In questo modo è possibile definire e personalizzare flessibilmente il prefisso del server che ospita ed espone l'API, senza fissarlo nella \emph{codebase} e rendendolo al contempo facilmente disponibile all'ambiente JavaScript nel browser.
 
 \subsection{Client Fetch}
-Nuxt offre tre diverse modalità per l'ottenimento dei dati remoti, tutti basati sulla libreria \texttt{ofetch}.
+Nuxt offre tre diverse modalità per l'ottenimento dei dati remoti, tutti basati sulla libreria \texttt{ofetch} \cite{ofetch}.
 
 Queste diverse tecniche si rendono necessarie a causa della natura del framework Nuxt, che di fatto viene eseguito sia su client che su server. Come conseguenza di ciò, Nuxt esegue di fatto codice JavaScript isomorfo / universale su entrambe le parti. Perciò, richiedere i dati ``semplicemente'', senza ulteriori accorgimenti, darebbe vita a una doppia richiesta, una sul server (per creare l'HTML) e una sul client (quando l'HTML è idratato dal framework Vue). Questo può dare vita a tutta una serie di problemi, ma soprattutto:
 \begin{itemize}
@@ -19,9 +19,9 @@ Queste diverse tecniche si rendono necessarie a causa della natura del framework
 
 Per risolvere questi problemi Nuxt include tecniche ulteriori che gestiscono automaticamente questa particolare situazione di richiesta dati, che in una SPA è una delle attività più frequenti e critiche:
 \begin{itemize}
-    \item \textbf{\$fetch}: si tratta di un semplice alias per la libreria \texttt{ofetch}. Di fatto la funzione agisce come una classica e moderna libreria client HTTP, come ad esempio Axios. Non ha particolari strutture o organizzazioni per Nuxt, di conseguenza è in teoria riservata solo per le interazioni asincrone a pagina caricata (ad esempio: cliccare bottoni, chiedere dati da modali aperti, \emph{polling} di dati a intervalli prestabiliti, ecc.)
-    \item \textbf{useFetch}: si tratta di un \emph{composable} per standardizzare le richieste di dati fatte nella funzione di \texttt{setup}, costruito a partire da \texttt{useAsyncData} e \texttt{\$fetch}.
-    \item \textbf{useAsyncData}: si tratta di un altro \emph{composable} che è responsabile per eseguire qualunque tipo di logica asincrona, non solo di richiesta dati da un server. Di fatto \texttt{useFetch} è un caso specifico di \texttt{useAsyncData}, cioè quello più comune, e fornisce semplice zucchero sintattico per questo scopo.
+    \item \textbf{\texttt{\$fetch(...)}}: si tratta di un semplice alias per la libreria \texttt{ofetch}. Di fatto la funzione agisce come una classica e moderna libreria client HTTP, come ad esempio Axios. Non ha particolari strutture o organizzazioni per Nuxt, di conseguenza è in teoria riservata solo per le interazioni asincrone a pagina caricata (ad esempio: codice eseguito alla pressione di un bottone, chiedere dati all'apertura di un modale, \emph{polling} di dati a intervalli prestabiliti, ecc.)
+    \item \textbf{\texttt{useFetch(...)}}: si tratta di un \emph{composable} per standardizzare le richieste di dati fatte nella funzione di \texttt{setup}, costruito a partire da \texttt{useAsyncData} e \texttt{\$fetch}.
+    \item \textbf{\texttt{useAsyncData(...)}}: si tratta di un altro \emph{composable} che è responsabile per eseguire qualunque tipo di logica asincrona, non solo di richiesta dati da un server. Di fatto \texttt{useFetch} è un caso specifico di \texttt{useAsyncData}, cioè quello più comune, e fornisce semplice zucchero sintattico per questo scopo.
 \end{itemize}
 
 Nel nostro caso particolare la libreria di fetch di fatto si interfaccerà sempre e solo con un'API, di conseguenza ha senso cercare un modo di evitare inutili ripetizioni dell'URL del backend, centralizzandone la definizione. Il modo più facile ed elegante è utilizzare le funzionalità dedicate di \texttt{ofetch} per creare un ulteriore client che include tutte le opzioni specifiche per l'API, evitando di doverle specificare ogni volta.
@@ -33,6 +33,51 @@ Come anticipato, si è introdotto un ulteriore livello di protezione mediante to
 
 In pratica questo avviene facendo una richiesta nel \emph{plugin} definito come sopra. Questo si traduce in una chiamata singola fatta al momento del caricamento della pagina web, quando il bundle di codice JavaScript è caricato per la prima e unica volta. La richiesta va a toccare un endpoint specifico dell'API REST che restituisce il token CSRF sia come corpo che come header. Il token è quindi recuperato e incluso in ogni richiesta seguente semplicemente ponendolo come ulteriore pre-impostazione del client personalizzato per l'API GVM.
 
+% solarized-light/dark, colorful, autumn, borland, emacs, pastie, tango, trac, vs
+\begin{figure}
+\centering
+\begin{jscode}
+export default defineNuxtPlugin(async (nuxtApp) => {
+  const runtimeConfig = useRuntimeConfig()
+  const {start, finish} = useLoadingIndicator()
+
+  const response = await $fetch.raw(runtimeConfig.public.apiBaseUrl + '/api/csrf-cookie', {credentials: 'include'})
+  const csrf_token = response.headers.get('X-CSRFToken')
+
+  const api = $fetch.create({
+    baseURL: runtimeConfig.public.apiBaseUrl + '/api',
+    onRequest({ options }) {
+      options.headers.set('X-Requested-With', 'XMLHttpRequest')
+      options.headers.set('Content-Type', 'application/json')
+      options.headers.set('Accept', 'application/json')
+      if (csrf_token) {
+        options.headers.set('X-CSRFToken', csrf_token)
+      }
+      options.credentials = 'include'
+      start() // Inizia l'animazione della barra di caricamento
+    },
+    async onResponseError({ response }) {
+      if ([401, 419].includes(response.status) && !response.url.endsWith('/api/login') && !response.url.endsWith('/api/logout') && !response.url.endsWith('/api/me')) {
+        const {logout} = useAuth()
+        logout()
+        await nuxtApp.runWithContext(() => navigateTo('/login'))
+      }
+    },
+    onResponse() {
+      finish() // Conclude l'animazione della barra di caricamento
+    }
+  })
+
+  return {
+    provide: {
+      api
+    }
+  }
+})
+\end{jscode}
+\caption{Plugin Nuxt per il client API}
+\end{figure}
+
 \subsection{Componente Suspense}
 Nuxt internamente usa il componente \texttt{<Suspense>} di Vue per ritardare la navigazione fino a che ogni richiesta asincrona non sia completata, evitando la resa bizzarra e improvvisa dei dati.
 
@@ -42,6 +87,19 @@ Questa funzionalità è di per sé attivata, ma può essere disattivata a second
 In aggiunta, Nuxt fornisce un componente che renderizza automaticamente una barra di caricamento per il cambio vista e le navigazioni tra pagine, intercettando le richieste fatte con le proprie librerie.
 
 Siccome il client in questo progetto è creato da zero usando direttamente \texttt{ofetch} allora segue che è necessario reintrodurre questo comportamento, agganciandosi ai \emph{callback} esposti dall'istanza \texttt{ofetch}. Nuxt offre anche un composable \texttt{useLoadingIndicator}, di fatto usato per fornire la barra di caricamento in modalità \emph{headless}. Nel nostro caso ci limiteremo a usarlo per governare la barra di caricamento sulla base dello stato delle richieste (semplicemente si avvia e termina assieme alla richiesta).
+
+\section{Modalità di rendering}
+Normalmente una SPA come quelle generate con framework client-side come Vue, React o Angular sul browser è caricata partendo dalla singola pagina HTML e quindi caricando l'insieme del codice JavaScript.
+
+Come già discusso, questa modalità di caricamento presenta due principali problemi, ovvero la scarsa predisposizione all'indicizzazione da parte dei motori di ricerca (trascurabile nel nostro caso) e il rischio di lentezza durante il primo caricamento dell'applicazione web.
+
+Per mitigare i precedenti due problemi Nuxt offre anche due diverse modalità di rendering alternative aggiuntive oltre a quella classica delle SPA:
+\begin{itemize}
+    \item \textbf{Server Side Rendering (SSR)}: in questo caso un componente server in JavaScript renderizza parte del contenuto web sul server a \emph{runtime} e al client ritorna la pagina web già parzialmente renderizzata, da completare in client-side.
+    \item \textbf{Static Site Generation (SSG)}: in questo altro caso invece Nuxt genera a \emph{compile-time} le pagine statiche, che poi un semplicissimo web server ritorna all'utente.
+\end{itemize}
+
+Nel nostro caso si è deciso per una soluzione di SSR, siccome SSG chiaramente non può supportare le rotte dinamiche (cioè, ad esempio, URL che contengono l'UUID di una risorsa, perché chiaramente questi non possono essere determinati a \emph{compile-time} dal crawler di Nuxt).
 
 \section{Autenticazione}
 Come detto precedentemente, l'autenticazione è gestita mediante cookie di sessione, ma ci sono comunque alcuni accorgimenti architetturali di cui tenere conto.
@@ -53,15 +111,29 @@ Il componente espone di fatto tre funzionalità: tentare il login con delle cred
 
 Questo composable è sfruttato anche nel client dell'API: se una qualunque richiesta ritorna uno stato interpretabile come un utente non autenticato nel sistema, cioè un codice 401, allora il client pulisce la sessione con un logout e ritorna alla schermata di login, di fatto rendendo il client reattivo ad eventuali cambiamenti improvvisi nel client o nel server.
 
-\subsection{SSR e middleware}
-Nuxt offre due diverse modalità di rendering:
-\begin{itemize}
-    \item 
-\end{itemize}
+\subsection{Middleware}
+Nuxt consente anche di definire facilmente dei \textbf{middleware}, ovvero del codice JavaScript che è eseguito a discrezione del programmatore durante il passaggio tra una pagina e all'altra.
 
-...
+In questo progetto è stato realizzato un middleware che impedisce all'utente di andare su rotte non consentite o non pensate per il suo stato di autenticazione (un utente autenticato non può andare alla schermata di login e uno non autenticato non può andare dove il login non è concesso, cioè ogni altra rotta dell'applicazione).
 
-Il middleware inoltre impedisce all'utente di andare su rotte non consentite o non pensate per il suo stato di autenticazione (un utente autenticato non può andare alla schermata di login e uno non autenticato non può andare dove il login non è concesso, cioè ogni altra rotta dell'applicazione).
+\begin{figure}
+  \centering
+  \begin{jscode}
+export default defineNuxtRouteMiddleware(async (to, from) => {
+  const {user, initUser} = useAuth()
+  await initUser()
+    
+  if (to.path !== '/login' && !user.value)
+    return navigateTo('/login')
+    
+  if (to.path === '/login' && user.value)
+    return navigateTo('/')
+})
+  \end{jscode}
+  \caption{Middleware usato per controllare lo stato d'autenticazione}
+\end{figure}
+
+L'unione del middleware e del logout automatico fatto dal composable di fatto garantisce di reagire il prima possibile al logout dell'utente.
 
 \section{Pagine e layout}
 Nuxt dispone di un proprio sistema di \emph{templating} per le pagine web. Qui segue come si è strutturata l'applicazione all'interno di queste funzionalità.
@@ -73,6 +145,12 @@ I file di layout sono utilizzati per definire lo scheletro comune a tutte le pag
     \item Uno specifico per la pagina di login e solo per quella.
 \end{itemize}
 Da questa organizzazione si deduce facilmente che in buona sostanza l'intera applicazione può essere consultata / usata solo se precedentemente autenticati.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.8\textwidth]{img/login.png}
+\caption{Layout / pagina di login}
+\end{figure}
 
 \subsection{Pagine}
 Le singole pagine sono invece strutturate secondo il \emph{file-based routing} di Nuxt. In particolare, queste sono le principali pagine / rotte previste:
@@ -94,10 +172,58 @@ Nell'interfaccia web si è deciso per avere un selettore di QoD globale, attivab
 
 Lo store Pinia consente di bypassare la struttura gerarchica dei componenti e di condividere globalmente la variabile del QoD ad ogni componente che ne ha bisogno.
 
+\begin{figure}
+\centering
+\begin{jscode}
+import { defineStore } from 'pinia'
+
+export const useQoDStore = defineStore('qod', {
+  state: () => ({ min_qod: 70, disable_input: false }),
+  actions: {
+    updateQoD(qod: number) {
+      this.disable_input = true
+      this.min_qod = qod
+    },
+    enableInput() {
+      this.disable_input = false
+    }
+  }
+})
+\end{jscode}
+\caption{Store Pinia usato per la condivisione del valore di QoD nel frontend}
+\end{figure}
+
 \section{Tipi TypeScript}
 Nuxt è un framework profondamente radicato in TypeScript, per fornire type safety e altri controlli.
 
 I tipi sono definiti in file \texttt{.d.ts}, in accordo con le convenzioni TypeScript. Di fatto sono quasi tutte interfacce TypeScript che replicano la struttura dei tipi già specificata negli schemi Marshmallow del backend.
+
+\begin{figure}
+\centering
+\begin{jscode}
+interface HostsSpecification {
+  allow: number;
+  hosts: string;
+  exclusions: string|null;
+}
+  
+interface User {
+  id: string;
+  name: string;
+  role: string;
+  quota: UserQuota;
+  comment: string;
+  creation_time: string;
+  owner: string;
+  hosts: HostsSpecification;
+  in_use: boolean;
+  tasks: Task[];
+}
+  
+type Freq = ('ONCE'|'HOURLY'|'DAILY'|'WEEKLY'|'MONTHLY'|'YEARLY')
+\end{jscode}
+\caption{Definizioni di tipo per le entità del sistema (estratto)}
+\end{figure}
 
 \section{Componenti Vue}
 Nuxt memorizza i componenti in una cartella \texttt{components/} gestita secondo convenzioni. In particolare, il nome delle cartelle induce automaticamente la struttura usata per effettuare import automatici dei componenti all'interno delle pagine, dei layout e di tutti gli altri componenti Vue.
@@ -107,12 +233,18 @@ Segue una spiegazione dei componenti più importanti e/o peculiari.
 \subsection{Tabelle}
 I componenti più importanti sono sicuramente le tabelle che organizzano e mostrano le entità. E fra questi, quello più importante è il componente generico su cui tutte le altre si basano.
 
+\begin{figure}
+\centering
+\includegraphics[width=\textwidth]{img/results.png}
+\caption{Tabella dei risultati ottenuti dalle scansioni}
+\end{figure}
+
 \subsubsection{Razionale}
 Di fatto il componente generico agisce come una sorta di tabella \emph{headless} che può essere configurata a seconda del caso specifico.
 
-In questo modo si è riusciti ad avere una sorta di griglia dei dati similare come concetto a quelle fornite da librerie come Ag-Grid. Tuttavia, l'aver realizzato questo componente in autonomia consente di applicare uno stile specifico per il nostro progetto.
+In questo modo si è riusciti ad avere una sorta di griglia dei dati similare come concetto a quelle fornite da librerie come Ag-Grid. Tuttavia, l'aver realizzato questo componente in autonomia consente di applicare uno stile d'aspetto specifico per il nostro progetto.
 
-Questo comportamento è molto simile a quello che offrono librerie come Tanstack, che forniscono componenti headless. Tuttavia, dopo un'attenta valutazione si è giunti alla conclusione che integrare librerie così avanzate sarebbe stato troppo lavoro per funzionalità aggiuntive che non si sarebbero mai usate. Inoltre, questo ha consentito di creare un'interfaccia più adatta e specifica per i nostri scopi.
+Questo comportamento è molto simile a quello che offrono librerie come Tanstack \cite{tanstack}, che forniscono componenti headless. Tuttavia, dopo un'attenta valutazione si è giunti alla conclusione che integrare librerie così avanzate sarebbe stato troppo lavoro per funzionalità aggiuntive che non si sarebbero mai usate. Inoltre, questo ha consentito di creare un'interfaccia più adatta e specifica per i nostri scopi.
 
 \subsubsection{Funzionalità}
 Il componente così creato offre le seguenti funzionalità:
@@ -124,7 +256,7 @@ Il componente così creato offre le seguenti funzionalità:
     \item Supporta e gestisce autonomamente una paginazione di tipo server-side usando i dati forniti dal backend.
     \item Supporta il filtraggio dei dati, se dichiarato possibile dall'interfaccia.
     \item Supporta l'ordinamento \emph{server-side} delle colonne, se dichiarato possibile dalle definizioni delle colonne.
-    \item \emph{Polling} dei dati ad intervalli regolari, realizzando l'aggiornamento dello stato delle scansioni, dei rapporti, dei risultati, ecc.
+    \item \emph{Polling} dei dati ad intervalli regolari, realizzando l'aggiornamento dinamico dello stato delle scansioni, dei rapporti e dei risultati. Per questa parte è stato necessario ricorrere a \textbf{VueUse} una libreria popolare di Vue 3, che fornisce dei \emph{composable} snelli e leggeri per facilitare l'integrazione delle funzioni standard nel nuovo paradigma di Vue.
     \item Il componente gestisce in autonomia accorgimenti al frontend per gestire elegantemente gli stati di caricamento.
     \item Le righe della tabella sono animate con il componente TransitionGroup di Vue.
     \item Può mostrare un bottone il cui evento apre un modale. Il modale ha contenuto personalizzabile attraverso un Component Vue.
@@ -136,9 +268,8 @@ Per realizzare il componente si sono usate varie feature di Vue e eventuali libr
 La maggior parte delle opzioni del componente sono specificabili usando il meccanismo degli attributi / props, soprattutto booleani e stringhe, ma in alcuni casi anche oggetti JavaScript più strutturati:
 \begin{itemize}
     \item Il componente incluso nel modale apribile dall'apposito bottone di aggiunta è specificabile tramite un Component. Siccome Nuxt usa un meccanismo di import automatico è necessario importare manualmente il componente, usando la macro \texttt{\#components} messa a disposizione da Nuxt apposta per queste situazioni.
-    \item Le definizioni delle colonne.
+    \item Le definizioni delle colonne, che specificano le proprietà di ognuna di essa: quale campo considerare nell'oggetto fornito, che tipo di dato è, quale \emph{renderer} usare per mostrare il dato, se la colonna è ordinabile, filtrabile e altre personalizzazioni di stile. Questo approccio è abbastanza simile a quello utilizzato da Tanstack \cite{tanstack}, sebbene più semplice e diretto.
 \end{itemize}
-Quest'ultimo punto merita un ulteriore approfondimento. Le definizioni delle colonne sono ciò che specifica le proprietà di ognuna di essa: quale campo considerare nell'oggetto fornito, che tipo di dato è, quale \emph{renderer} usare per mostrare il dato, se la colonna è ordinabile, filtrabile e altre personalizzazioni di stile. Questo approccio è abbastanza simile a quello utilizzato da Tanstack, sebbene più semplice e diretto.
 
 Nel componente si è anche usata una feature di Vue abbastanza recente (3.3) ovvero i \textbf{componenti generici}. Questa funzionalità consente di definire e usare tipi generici nella funzione di \texttt{setup} del componente. Nel caso specifico si è definito un tipo generico per l'entità considerata dalla tabella.
 
@@ -153,10 +284,35 @@ Nel progetto ci sono quasi 40 renderer differenti e/o innestati l'uno nell'altro
     \item Inoltre, renderizzare i dati in questo modo consente di realizzare personalizzazioni più avanzate che semplici modifiche stilistiche, permettendo di integrare del comportamento (apertura di modali, \emph{tooltip}, link a pagine web, ecc.)
 \end{itemize}
 
+\begin{figure}
+\centering
+\begin{vuesfc}
+<script setup lang="ts">
+import { DateTime } from 'luxon'
+  
+defineProps<{ value: string }>()
+</script>
+  
+<template>
+  <span v-if="value" class="text-xs truncate">
+    {{ DateTime.fromISO(value).toLocaleString({month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit'}) }}
+  </span>
+  <span v-else />
+</template>
+\end{vuesfc}
+\caption{Renderer usato per i timestamp, basato sulla libreria Luxon}
+\end{figure}
+
 \subsubsection{CPE}
 Un renderer particolarmente interessante è quello usato per i CPE. OpenVAS infatti utilizza stringhe che rispettano il formato CPE per specificare gli \emph{asset} inventariati dalle scansioni (host e OS), ma anche l'ambiente in cui una vulnerabilità è stata rilevata.
 
 Per rendere la consultazione dei risultati il più possibile veloce si è deciso di mostrare i CPE corredandoli di icone. Queste sono determinate a partire dai \emph{vendor} (o dai \emph{product}) specificati nella stringa CPE.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.6\textwidth]{img/cpe.png}
+\caption{Renderer delle stringhe CPE e dei punteggi di severità}
+\end{figure}
 
 \subsubsection{Iconify}
 Molti dei renderer sfruttano le icone SVG per facilitare la visualizzazione dei dati a colpo d'occhio.
@@ -166,15 +322,15 @@ Le icone sono fornite dalla libreria \textbf{Iconify} che porta in dote decine d
 \subsection{Modali}
 I modali sono definiti tutti a partire da un componente comune, che ne fornisce le funzionalità di base. Il contenuto è personalizzabile con lo slot di default.
 
-La caratteristica fondante di un modale è che questo in un certo senso esce dalla gerarchia del documento HTML. Questo è realizzato anche in pratica con il componente Teleport di Vue, che trasferisce il componente sotto il tag body.
+La caratteristica fondante di un modale è che questo in un certo senso esce dalla gerarchia del documento HTML. Questo è realizzato anche in pratica con il componente \texttt{Teleport} di Vue, che trasferisce il componente sotto il tag body.
 
-L'apparizione del modale è animata con il componente Transition.
+L'apparizione del modale è animata con il componente \texttt{Transition}.
 
 \subsection{Form}
 Le form sono un altro pezzo essenziale dell'applicazione. Come in ogni progetto, la parte fondamentale e più critica di queste componenti riguarda l'inserimento e la validazione dei dati, che dev'essere il più possibile semplice e intuitivo.
 
 \subsubsection{Validazione}
-Per quanto riguarda la validazione ci si è integrati con Vee-Validate, una delle più popolari librerie di validazione \emph{client-side}. Trattandosi di validazione client-side si è badato soprattutto a fornire un \emph{feedback} veloce e informativo per l'utente. Infatti, tutti i dati sono comunque validati \emph{server-side} tramite gli schemi Marshmallow.
+Per quanto riguarda la validazione ci si è integrati con \textbf{Vee-Validate} \cite{vee-validate}, una delle più popolari librerie di validazione \emph{client-side}. Trattandosi di validazione client-side si è badato soprattutto a fornire un \emph{feedback} veloce e informativo per l'utente. Infatti, tutti i dati sono comunque validati \emph{server-side} tramite gli schemi Marshmallow.
 
 \subsubsection{Select e option}
 Per rendere l'input dei dati il più facile possibile si è fatto largo uso del paradigma di input fornito dai tag HTML di select, ovvero i menu a discesa. In questo modo la validazione dei dati è semplificata, ma anche l'esperienza utente, che ha a disposizione un piccolo insieme di opzioni ben chiare tra cui scegliere.
@@ -187,3 +343,53 @@ Tuttavia, il componente nativo di select è piuttosto limitato:
 Per ovviare a queste limitazioni si è fatto larghissimo uso di \texttt{vue-multiselect}, una comodissima libreria che fornisce un componente di selezione accessibile e molto personalizzabile, sia come aspetto che come comportamento.
 
 Per ogni componente di selezione si è sfruttata questa libreria, realizzando inoltre dei componenti dedicati per il \emph{rendering} di ogni singola opzione. In questo modo, ogni componente di selezione è personalizzato appositamente per lo scopo, con icone e descrizioni, rendendo l'input dei dati particolarmente veloce e semplice.
+
+\begin{figure}[!h]
+\centering
+\includegraphics[width=\textwidth]{img/form-task-now.png}
+\caption{Form per l'aggiunta di un nuovo task di scansione}
+\end{figure}
+
+\begin{figure}[b]
+\begin{vuesfc}
+<script setup lang="ts">
+defineProps<{
+  showModalIf: boolean;
+  title: string;
+}>()
+
+defineEmits(['close'])
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      ...
+    </Transition>
+  </Teleport>
+</template>
+
+<style scoped>
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+  opacity: 0;
+}
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+  transition: 0.25s ease all;
+}
+.modal-wrapper {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.2);
+  display: grid;
+  place-items: center;
+}
+</style>
+\end{vuesfc}
+\caption{Modale generico definito con i costrutti idiomatici di Vue}
+\end{figure}

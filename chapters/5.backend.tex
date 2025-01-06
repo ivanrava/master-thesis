@@ -168,7 +168,7 @@ Dalla scelta di utilizzare il meta-framework di APIFlask deriva anche la scelta 
 
 Marshmallow si integra facilmente con Flask tramite appositi plugin, ma APIFlask offre una serie di automazioni che semplificano la validazione degli schemi in input (JSON) e l'auto-formattazione delle entità restituite in JSON. Queste automazioni includono il filtraggio e il parsing degli attributi sia in input che in output, permettendo conversioni basilari e avanzate, con la possibilità di utilizzare callback e hook astratti offerti dalle classi base di Marshmallow e personalizzabili nelle singole classi di schema attraverso override.
 
-\begin{lstlisting}[caption={Esempio di schema Marshmallow con validazione},basicstyle=\ttfamily\footnotesize\color{one-text}]
+\begin{minted}{python}
 def unique_username(username: str):
     response = g.gmp.get_users(filter_string=f'name={username}')
     if response.find('user') is not None:
@@ -202,7 +202,7 @@ class UserStoreRequest(Schema):
         data['hosts'] = [host for host in data['hosts'].split(',') if host != '']
         data['role'] = current_app.config.get(f"ROLE_{data['role'].upper()}")
         return data
-\end{lstlisting}
+\end{minted}
 
 Tuttavia, a differenza di Pydantic, Marshmallow non consente di utilizzare direttamente i tipi nativi di Python, ma richiede l'uso di classi wrapper specifiche della libreria. Questo introduce un certo livello di astrazione indesiderata, anche se i vantaggi dall'uso di Marshmallow superano gli svantaggi che porta il non usare una libreria di questo tipo.
 
@@ -281,7 +281,7 @@ La classe \texttt{Model}, che funge da superclasse per tutte le classi di modell
     \item \texttt{paginate()}: Questo metodo concreto riceve tutti i parametri relativi alla paginazione, come il numero di pagina, il numero di oggetti per pagina, l'ordinamento (ascendente o discendente e su quale attributo) e il filtraggio (gestito tramite una \texttt{filter\_string} in Powerfilter). \texttt{paginate()} esegue i calcoli necessari per determinare la pagina e costruisce una nuova \texttt{filter\_string} decorando quella iniziale con i valori necessari per gestire la paginazione. Questa \texttt{filter\_string} viene poi passata a \texttt{all()}, che recupera i record appropriati. Il metodo \texttt{paginate()} restituisce quindi i record paginati, insieme a informazioni utili per il frontend, come il numero totale di pagine e il numero totale di record.
 \end{itemize}
 
-\begin{lstlisting}[caption={Modello base dell'ORM}]
+\begin{minted}{python}
 class Model:
     def __repr__(self):
         import pprint
@@ -316,7 +316,7 @@ class Model:
     @abstractmethod
     def all(cls, filter_string: str) -> tuple[list['Model'], int]:
         pass
-\end{lstlisting}
+\end{minted}
 
 Inoltre, la classe \texttt{Model} implementa anche il \emph{magic method} \texttt{\_\_repr\_\_()}, fornendo un'implementazione di default per la stampa in ambiente CLI. In particolare, l'implementazione usa \texttt{pprint} per stampare la rappresentazione interna a dizionario dell'oggetto, risultando particolarmente utile durante il debug o i test.
 
@@ -512,6 +512,7 @@ In questo modo la quota valida è controllata a monte dell'unica operazione che 
 Si noti che di fatto il sistema OpenVAS consente tranquillamente la definizione di un qualsivoglia numero di scansioni, senza rispettare i valori specificati nei tag. L'API wrapper fatta con Flask è quella che impone il controllo a livello applicativo della validità delle operazioni proposte dall'utente.
 
 \section{Multi-tenancy}
+\label{roles}
 La multi-tenancy è stata gestita usando il sistema dei ruoli nativo di Greenbone:
 \begin{itemize}
     \item \textbf{1° livello / Super amministratore}: per questo ruolo è stato usato il ruolo di \textbf{Super Admin}, già incluso nel sistema Greenbone. Tale ruolo va necessariamente creato da linea di comando interagendo direttamente con il demone \texttt{gvmd}. Inoltre, l'utente di super amministratore è impostata come proprietario degli oggetti reperiti dal \emph{feed} di Greenbone.
@@ -578,7 +579,7 @@ In questo caso è stato aggiunto un comando Click (chiamato semplicemente \textt
     \item Una funzione\footnote{Python consente di definire funzioni locali ad altre funzioni. In questo modo la funzione è disponibile solo nel contesto interattivo creato da Click.} \texttt{pp()} per la stampa a schermo formattata dei documenti XML restituiti dalla API.
 \end{itemize}
 
-\begin{lstlisting}[caption={Comando utilizzato per interagire da CLI con l'API GMP}]
+\begin{minted}{python}
 @click.command("gmp")
 @click.argument('credentials', required=False)
 def test_command(credentials: str):
@@ -595,4 +596,4 @@ def test_command(credentials: str):
 
         import code
         code.interact(local=locals())
-\end{lstlisting}
+\end{minted}
