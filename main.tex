@@ -15,32 +15,61 @@
 \usepackage[style=alphabetic]{biblatex}
 \addbibresource{sources.bib}
 
+\definecolor{sol-background}{HTML}{FDF6E3}
+\definecolor{sol-text}{HTML}{657B83}
+\definecolor{sol-comments}{HTML}{93A1A1}
+\definecolor{sol-keywords}{HTML}{859900}
+\definecolor{sol-strings}{HTML}{2AA198}
+\definecolor{sol-constants}{HTML}{268BD2}
+\definecolor{sol-functions}{HTML}{B58900}
+
+\definecolor{one-background}{HTML}{FAFAFA}
+\definecolor{one-text}{HTML}{383A42}
+\definecolor{one-comments}{HTML}{A0A1A7}
+\definecolor{one-keywords}{HTML}{A626A4}
+\definecolor{one-strings}{HTML}{50A14F}
+\definecolor{one-constants}{HTML}{986801}
+\definecolor{one-functions}{HTML}{4078F2}
+
 \renewcommand\lstlistingname{Codice}
 \renewcommand\lstlistlistingname{Elenco dei frammenti di codice}
 
+\newtcblisting{pycode}[1][]{
+  listing engine=minted,
+  colback=teal!6,
+  colframe=black!70,
+  listing only,
+  minted style=tango,
+  minted language=Python,
+  minted options={breaklines=true,escapeinside=||,linenos=true,numbersep=3mm,texcl=true,#1},
+  left=5mm,enhanced,
+  overlay={\begin{tcbclipinterior}\fill[teal!4] (frame.south west)
+            rectangle ([xshift=5mm]frame.north west);\end{tcbclipinterior}},
+  frame hidden,
+}
 \newtcblisting{jscode}[1][]{
   listing engine=minted,
-  colback=sol-background,
+  colback=sol-background!50,
   colframe=black!70,
   listing only,
   minted style=solarized-light,
   minted language=TypeScript,
   minted options={breaklines=true,escapeinside=||,linenos=true,numbersep=3mm,texcl=true,#1},
   left=5mm,enhanced,
-  overlay={\begin{tcbclipinterior}\fill[sol-background!50] (frame.south west)
+  overlay={\begin{tcbclipinterior}\fill[sol-background!30] (frame.south west)
             rectangle ([xshift=5mm]frame.north west);\end{tcbclipinterior}},
   frame hidden,
 }
 \newtcblisting{vuesfc}[1][]{
   listing engine=minted,
-  colback=sol-background,
+  colback=green!5,
   colframe=black!70,
   listing only,
-  minted style=solarized-light,
+  minted style=perldoc,
   minted language=html,
   minted options={breaklines=true,escapeinside=||,linenos=true,numbersep=3mm,texcl=true,#1},
   left=5mm,enhanced,
-  overlay={\begin{tcbclipinterior}\fill[sol-background!50] (frame.south west)
+  overlay={\begin{tcbclipinterior}\fill[green!2] (frame.south west)
             rectangle ([xshift=5mm]frame.north west);\end{tcbclipinterior}},
   frame hidden,
 }
@@ -49,7 +78,6 @@
     \input{chapters/frontpage}
     \tableofcontents
     \listoffigures
-    \lstlistoflistings
     \chapter{Introduzione}
     \input{chapters/1.introduction}
     \chapter{Analisi}
@@ -58,7 +86,6 @@
     \input{chapters/3.openvas}
     \chapter{Progettazione}
     \input{chapters/4.design}
-    \lstset{style=backend, language=Python}
     \chapter{Sviluppo: backend}
     \input{chapters/5.backend}
     \chapter{Sviluppo: frontend}
