@@ -12,6 +12,26 @@
 \usepackage{tcolorbox}
 \tcbuselibrary{minted,skins}
 \usepackage{charter}
+\usepackage[Lenny]{fncychap}
+\usepackage{fancyhdr}
+\ChTitleVar{\Huge\sc}
+\usepackage{caption}
+\usepackage[cleardoublepage=plain]{scrextend}
+
+% To clear page numbers from footer, and header line at the start of every chapter
+\fancypagestyle{plain}{\fancyhf{}\renewcommand{\headrulewidth}{0pt}}
+\pagestyle{fancy}
+\fancyhf{}% Clear header/footer
+\fancyhead[RE]{\nouppercase\leftmark}
+\fancyhead[LO]{\nouppercase\rightmark}
+\fancyhead[LE,RO]{\thepage}
+
+\let\OldTexttt\texttt
+\renewcommand{\texttt}[1]{\textcolor{teal}{\OldTexttt{#1}}}
+
+% Ridefinisci il formato della didascalia
+\DeclareCaptionFormat{custom}{\textbf{#1#2}#3} % Grassetto per "Figura 3.1"
+\captionsetup[figure]{format=custom} % Applica il formato alle figure
 
 \usepackage[style=alphabetic]{biblatex}
 \addbibresource{sources.bib}
@@ -76,25 +96,25 @@
 }
 
 \begin{document}
-    \input{chapters/frontpage}
-    \tableofcontents
-    \listoffigures
-    \chapter{Introduzione}
-    \input{chapters/1.introduction}
-    \chapter{Analisi}
-    \input{chapters/2.analysis}
-    \chapter{Greenbone OpenVAS}
-    \input{chapters/3.openvas}
-    \chapter{Progettazione}
-    \input{chapters/4.design}
-    \chapter{Sviluppo: backend}
-    \input{chapters/5.backend}
-    \chapter{Sviluppo: frontend}
-    \input{chapters/6.frontend}
-    \chapter{Installazione e configurazione}
-    \input{chapters/7.deployment}
-    \chapter{Conclusione e sviluppi futuri}
-    \input{chapters/8.conclusion}
+  \input{chapters/frontpage}
+  \tableofcontents
+  \listoffigures
+  \chapter{Introduzione}
+  \input{chapters/1.introduction}
+  \chapter{Analisi}
+  \input{chapters/2.analysis}
+  \chapter{Greenbone OpenVAS}
+  \input{chapters/3.openvas}
+  \chapter{Progettazione}
+  \input{chapters/4.design}
+  \chapter{Sviluppo: Backend}
+  \input{chapters/5.backend}
+  \chapter{Sviluppo: Frontend}
+  \input{chapters/6.frontend}
+  \chapter{Deployment}
+  \input{chapters/7.deployment}
+  \chapter{Conclusione}
+  \input{chapters/8.conclusion}
 
-    \printbibliography
+  \printbibliography
 \end{document}
