@@ -154,15 +154,7 @@ class User(MethodView):
         except GvmResponseError as e:
             return {'message': e.message}, int(e.status)
     
-    @bp.output(ErrorMessageResponse, status_code=204)
-    @bp.doc(responses=[404])
-    def delete(self, user_uuid):
-        try:
-            models.User.delete(user_id=user_uuid)
-            return '', 204
-        except GvmResponseError as e:
-            return {'message': e.message}, int(e.status)
-
+    ...
 
 bp.add_url_rule('', view_func=Users.as_view('users'))
 bp.add_url_rule('/<uuid:user_uuid>', view_func=User.as_view('user'))
