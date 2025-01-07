@@ -101,7 +101,7 @@ Per strutturare ancora di più il codice, si è cercato di fornire un'architettu
 
 Flask mette a disposizione la classe \texttt{MethodView} proprio per questo caso. Si tratta di una classe che consente di gestire più metodi HTTP (ad esempio GET, POST, PUT, DELETE) all'interno di una singola classe. Ciò consente di organizzare il codice in modo più pulito e facile da mantenere.
 
-Le MethodView sono utili quando si desidera gestire più azioni su una stessa risorsa in modo semantico (caratteristica chiave delle REST API), ad esempio:
+Le \texttt{MethodView} sono utili quando si desidera gestire più azioni su una stessa risorsa in modo semantico (caratteristica chiave delle REST API), ad esempio:
 \begin{itemize}
     \item Gestire una richiesta GET per recuperare i dati di una risorsa
     \item Gestire una richiesta POST per creare una nuova risorsa
@@ -162,7 +162,7 @@ bp.add_url_rule('/<uuid:user_uuid>', view_func=User.as_view('user'))
 \caption{Blueprint API e MethodView con decoratori comuni}
 \end{figure}
 
-Le MethodView consentono anche di applicare globalmente i decoratori Python, definendoli come attributi d'istanza. Nel caso specifico, le nostre MethodView sono definite con i decoratori di Flask-Login, rendendo tutte le viste automaticamente protette dall'accesso non precedentemente autorizzato. Inoltre, con un ulteriore decoratore proprio di APIFlask è possibile segnalare le viste come protette dall'autenticazione, ottenendo questa informazione durante la generazione automatica della documentazione interattiva.
+Le \texttt{MethodView} consentono anche di applicare globalmente i decoratori Python, definendoli come attributi d'istanza. Nel caso specifico, le nostre MethodView sono definite con i decoratori di Flask-Login, rendendo tutte le viste automaticamente protette dall'accesso non precedentemente autorizzato. Inoltre, con un ulteriore decoratore proprio di APIFlask è possibile segnalare le viste come protette dall'autenticazione, ottenendo questa informazione durante la generazione automatica della documentazione interattiva.
 
 \subsection{Schemi Marshmallow}
 Dalla scelta di utilizzare il meta-framework di APIFlask deriva anche la scelta obbligata della libreria di gestione degli schemi dei dati: Marshmallow (invece di Pydantic). APIFlask supporta di fatto solo Marshmallow, il che ha reso questa libreria una scelta naturale, anticipata già in \ref{design-marshmallow}.
@@ -455,7 +455,9 @@ Flask supporta l'uso di un oggetto ``globale'' per tutta la durata della richies
 def get_gmp() -> None | GMPv224[Any] | GMPv225[Any]:
     if 'gmp' not in g:
         g.gmp = Gmp(
-            connection=UnixSocketConnection(path=current_app.config.get('GVMD_SOCKFILE')),
+            connection=UnixSocketConnection(
+                path=current_app.config.get('GVMD_SOCKFILE')
+            ),
             transform=EtreeCheckCommandTransform()
         ).__enter__()
         try:

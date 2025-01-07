@@ -198,33 +198,6 @@ Nuxt è un framework profondamente radicato in TypeScript, per fornire type safe
 
 I tipi sono definiti in file \texttt{.d.ts}, in accordo con le convenzioni TypeScript. Di fatto sono quasi tutte interfacce TypeScript che replicano la struttura dei tipi già specificata negli schemi Marshmallow del backend.
 
-\begin{figure}
-\centering
-\begin{jscode}
-interface HostsSpecification {
-  allow: number;
-  hosts: string;
-  exclusions: string|null;
-}
-  
-interface User {
-  id: string;
-  name: string;
-  role: string;
-  quota: UserQuota;
-  comment: string;
-  creation_time: string;
-  owner: string;
-  hosts: HostsSpecification;
-  in_use: boolean;
-  tasks: Task[];
-}
-  
-type Freq = ('ONCE'|'HOURLY'|'DAILY'|'WEEKLY'|'MONTHLY'|'YEARLY')
-\end{jscode}
-\caption{Definizioni di tipo per le entità del sistema (estratto)}
-\end{figure}
-
 \section{Componenti Vue}
 Nuxt memorizza i componenti in una cartella \texttt{components/} gestita secondo convenzioni. In particolare, il nome delle cartelle induce automaticamente la struttura usata per effettuare import automatici dei componenti all'interno delle pagine, dei layout e di tutti gli altri componenti Vue.
 
